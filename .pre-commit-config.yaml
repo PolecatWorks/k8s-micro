@@ -1,0 +1,22 @@
+repos:
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v2.3.0
+    hooks:
+    -   id: check-yaml
+    -   id: end-of-file-fixer
+        exclude: ^.idea/
+    -   id: trailing-whitespace
+        exclude: ^.idea/
+    -   id: check-added-large-files
+#    -   id: no-commit-to-branch
+#        args: ['--branch', 'main']
+-   repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
+    rev: v2.5.0
+    hooks:
+#      - id: pretty-format-java
+#        args: [--autofix]
+      - id: pretty-format-kotlin
+        args: [--autofix]
+#      - id: pretty-format-yaml
+#        args: [--autofix, --indent, '2']
+#        exclude: ^.idea/

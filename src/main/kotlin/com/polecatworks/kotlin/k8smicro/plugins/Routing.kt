@@ -1,12 +1,11 @@
 package com.polecatworks.kotlin.k8smicro.plugins
 
 import com.polecatworks.kotlin.k8smicro.models.Alive
-import io.ktor.server.routing.*
 import io.ktor.http.*
 import io.ktor.server.application.*
-import io.ktor.server.response.*
 import io.ktor.server.request.*
-
+import io.ktor.server.response.*
+import io.ktor.server.routing.*
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -23,10 +22,8 @@ fun Application.configureRouting(health: Array<Alive>) {
 //            call.respondText { "ready" }
         }
         get("/health/alive") {
-
-            val customer = Customer(1,"Ben", "Greene")
+            val customer = Customer(1, "Ben", "Greene")
             call.respond(customer)
-
         }
     }
 }
