@@ -14,13 +14,14 @@
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <kotlin.version>1.8.0-Beta</kotlin.version>
         <kotlin.code.style>official</kotlin.code.style>
+
         <junit.version>4.13.2</junit.version>
         <ktor.version>2.2.1</ktor.version>
         <serialization.version>1.4.1</serialization.version>
         <logback.version>1.4.5</logback.version>
         <java.version>11</java.version>
         <kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
-        <main.class>com.polecatworks.k8smicro.Hello</main.class>
+        <main.class>com.polecatworks.kotlin.k8smicro.HelloKt</main.class>
     </properties>
 
     <dependencies>

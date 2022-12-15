@@ -38,6 +38,7 @@ class Hello : CliktCommand() {
 
 fun main(args: Array<String>) = Hello().main(args)
 
+
 fun startServer(health: Array<Alive>) {
     logger.info { "Starting server" }
     embeddedServer(

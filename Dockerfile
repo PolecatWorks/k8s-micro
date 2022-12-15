@@ -24,6 +24,7 @@ COPY pom.xml ./
 RUN mvn -T 1C install && rm -rf target
 # copy other source files (keep in image)
 COPY src ./src/
+RUN mvn verify
 
 
 FROM eclipse-temurin:11 as jre-build
@@ -40,12 +41,12 @@ RUN $JAVA_HOME/bin/jlink \
 
 # # Define your base image
 # # FROM debian:buster-slim
-# FROM ubuntu:lunar as publish
-# ENV JAVA_HOME=/opt/java/openjdk
-# ENV PATH "${JAVA_HOME}/bin:${PATH}"
-# COPY --from=jre-build /javaruntime $JAVA_HOME
+FROM ubuntu:lunar as publish
+ENV JAVA_HOME=/opt/java/openjdk
+ENV PATH "${JAVA_HOME}/bin:${PATH}"
+COPY --from=jre-build /javaruntime $JAVA_HOME
 
 # # Continue with your application deployment
-# RUN mkdir /opt/app
-# COPY japp.jar /opt/app
-# CMD ["java", "-jar", "/opt/app/japp.jar"]
+RUN mkdir /opt/app
+COPY  --from=java-build /usr/src/app/target/k8s-micro-1.0-SNAPSHOT-jar-with-dependencies.jar /opt/app/japp.jar
+CMD ["java", "-jar", "/opt/app/japp.jar"]
