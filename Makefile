@@ -1,5 +1,5 @@
 IMAGE_NAME=k8s-micro
-
+VERSION=2.0.0
 
 
 docker-java-build:
@@ -11,7 +11,7 @@ docker-jre-build:
 	docker image ls ${IMAGE_NAME}-jre-build
 
 docker-build:
-	docker build --target publish -t ${IMAGE_NAME} .
+	docker build --target publish -t ${IMAGE_NAME}:${VERSION} .
 	docker image ls ${IMAGE_NAME}
 
 docker-java-build-bash: docker-java-build
@@ -21,4 +21,7 @@ docker-jre-build-bash: docker-jre-build
 	docker run -it ${IMAGE_NAME}-jre-build /bin/bash
 
 docker-bash: docker-build
-	docker run -it ${IMAGE_NAME} /bin/bash
+	docker run -it ${IMAGE_NAME}:${VERSION} /bin/bash
+
+docker-run: docker-build
+	docker run -it ${IMAGE_NAME}:${VERSION}

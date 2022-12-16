@@ -18,10 +18,12 @@ fun Application.configureRouting(health: HealthSystem) {
             call.respondText("Hello World!")
         }
         get("/health/ready") {
-            call.respond(health)
-//            call.respondText { "ready" }
+//            call.respond(health)
+            call.application.environment.log.info("Ready check")
+            call.respondText { "ready" }
         }
         get("/health/alive") {
+            call.application.environment.log.info("Alive check")
             val customer = Customer(1, "Ben", "Greene")
             call.respond(customer)
         }

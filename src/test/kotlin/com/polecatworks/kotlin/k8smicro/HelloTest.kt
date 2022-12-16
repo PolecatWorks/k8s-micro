@@ -20,7 +20,7 @@ class HelloTest {
             install(ContentNegotiation) {
                 json()
             }
-            configureRouting(arrayOf(Alive("test1", true)))
+            configureRouting(HealthSystem())
         }
         val response = client.get("/")
         assertEquals(HttpStatusCode.OK, response.status)

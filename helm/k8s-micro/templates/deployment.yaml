@@ -44,19 +44,11 @@ spec:
           livenessProbe:
             httpGet:
               port: http-health
-              {{- if hasKey .Values "env" }}
-              path: {{ default "/" .Values.env.BASE_PATH }}
-              {{- else }}
-              path: "/"
-              {{- end }}
+              path: "/health/alive"
           readinessProbe:
             httpGet:
               port: http-health
-              {{- if hasKey .Values "env" }}
-              path: {{ default "/" .Values.env.BASE_PATH }}
-              {{- else }}
-              path: "/"
-              {{- end }}
+              path: "/health/ready"
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

@@ -14,11 +14,14 @@ import io.ktor.server.engine.*
 import io.ktor.server.plugins.contentnegotiation.*
 import mu.KotlinLogging
 import kotlin.concurrent.thread
+import java.util.concurrent.atomic.AtomicBoolean
 
 private val logger = KotlinLogging.logger {}
 
 class Hello : CliktCommand() {
     private val config by option(help = "Config file").file(canBeFile = true)
+    private var running = AtomicBoolean(true)
+
 
     override fun run() {
         val configBuilder = ConfigLoaderBuilder.default()
@@ -33,27 +36,42 @@ class Hello : CliktCommand() {
             .loadConfigOrThrow<Config>()
         logger.info("Config= $config")
 
-//        val myHealth = arrayOf(Alive("hello1", true), Alive("hello2", false))
 
-        val myHealth = HealthSystem()
-
-        logger.info { "Starting the thread" }
-        val ben = thread {
-            println("i am thread")
-            Thread.sleep(5000)
-            println("Done me")
-        }
-
+        // Register our safe shutdown procedure
         val shutdownHook = thread(start = false) {
             logger.info("Starting the shutdown process. Will take a little while")
+
+            Thread.sleep(1000)
+            logger.info{ "Set running to false to shut us down" }
+            running.set(false)
             Thread.sleep(10000)
             logger.info("Shutdown prep complete. Now going to close")
         }
         Runtime.getRuntime().addShutdownHook(shutdownHook)
 
-        healthWebServer(myHealth)
+        // Construct our health system
+        val myHealth = HealthSystem()
+        val healthThread = thread {
+            healthWebServer(myHealth, running)
+        }
+
+        // Start a randome side thread that ..... may be wobbly so might fail on us after 5 secs
+        logger.info { "Starting the thread" }
+        val ben = thread {
+            println("i am thread")
+            Thread.sleep(500000)
+            println("Done me")
+        }
+
 
         ben.join()
+
+
+
+        logger.info { "Something happend our threads so we shutdown safely by setting running=false" }
+        running.set(false)
+
+        healthThread.join()
         shutdownHook.join()
 
         logger.info("Successfully closed")
@@ -62,7 +80,7 @@ class Hello : CliktCommand() {
 
 fun main(args: Array<String>) = Hello().main(args)
 
-fun healthWebServer(health: HealthSystem) {
+fun healthWebServer(health: HealthSystem, running: AtomicBoolean) {
     logger.info { "Starting health server" }
     val myserver = embeddedServer(
         CIO,
@@ -80,9 +98,12 @@ fun healthWebServer(health: HealthSystem) {
     }
         .start(wait = false)
 
-    logger.info("Sleeping for a bit")
-    Thread.sleep(10000)
-    logger.info("Slept enough")
+    logger.info("Running until stopped")
+    while (running.get()) {
+        Thread.sleep(1000)
+        logger.info("Health system is alive")
+    }
+    logger.info("Alive is done")
 
     myserver.stop(100L, 1000L)
     logger.info("Health stopped")
