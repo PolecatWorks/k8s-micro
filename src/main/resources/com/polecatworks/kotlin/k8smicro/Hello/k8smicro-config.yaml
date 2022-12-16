@@ -1,0 +1,4 @@
+env: hello
+webserver:
+  port: 8080
+  prefix: /microk8s/v0
