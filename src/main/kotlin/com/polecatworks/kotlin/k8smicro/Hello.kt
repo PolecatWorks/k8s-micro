@@ -3,7 +3,6 @@ package com.polecatworks.kotlin.k8smicro
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
-import com.polecatworks.kotlin.k8smicro.models.Alive
 import com.polecatworks.kotlin.k8smicro.plugins.configureRouting
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.addFileSource
@@ -34,7 +33,9 @@ class Hello : CliktCommand() {
             .loadConfigOrThrow<Config>()
         logger.info("Config= $config")
 
-        val myHealth = arrayOf(Alive("hello1", true), Alive("hello2", false))
+//        val myHealth = arrayOf(Alive("hello1", true), Alive("hello2", false))
+
+        val myHealth = HealthSystem()
 
         logger.info { "Starting the thread" }
         val ben = thread {
@@ -43,17 +44,17 @@ class Hello : CliktCommand() {
             println("Done me")
         }
 
-        val printingHook = thread(start = false) {
-            println("Starting the shutdown process. Will take a little while")
+        val shutdownHook = thread(start = false) {
+            logger.info("Starting the shutdown process. Will take a little while")
             Thread.sleep(10000)
-            println("Now going to close")
+            logger.info("Shutdown prep complete. Now going to close")
         }
-        Runtime.getRuntime().addShutdownHook(printingHook)
+        Runtime.getRuntime().addShutdownHook(shutdownHook)
 
         healthWebServer(myHealth)
 
         ben.join()
-        printingHook.join()
+        shutdownHook.join()
 
         logger.info("Successfully closed")
     }
@@ -61,7 +62,7 @@ class Hello : CliktCommand() {
 
 fun main(args: Array<String>) = Hello().main(args)
 
-fun healthWebServer(health: Array<Alive>) {
+fun healthWebServer(health: HealthSystem) {
     logger.info { "Starting health server" }
     val myserver = embeddedServer(
         CIO,
