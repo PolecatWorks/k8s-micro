@@ -1,6 +1,6 @@
 package com.polecatworks.kotlin.k8smicro.plugins
 
-import com.polecatworks.kotlin.k8smicro.models.Alive
+import com.polecatworks.kotlin.k8smicro.HealthSystem
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class Customer(val id: Int, val firstName: String, val lastName: String)
 
-fun Application.configureRouting(health: Array<Alive>) {
+fun Application.configureRouting(health: HealthSystem) {
     routing {
         get("/") {
             call.application.environment.log.info("Hello from /api/v1!")
