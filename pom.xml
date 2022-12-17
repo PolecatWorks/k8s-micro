@@ -16,15 +16,32 @@
         <kotlin.code.style>official</kotlin.code.style>
 
         <junit.version>4.13.2</junit.version>
-        <ktor.version>2.2.1</ktor.version>
+        <ktor_version>2.2.1</ktor_version>
         <serialization.version>1.4.1</serialization.version>
         <logback.version>1.4.5</logback.version>
+        <prometheus_version>1.10.2</prometheus_version>
         <java.version>11</java.version>
         <kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
         <main.class>com.polecatworks.kotlin.k8smicro.HelloKt</main.class>
     </properties>
 
     <dependencies>
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-server-metrics-micrometer-jvm</artifactId>
+            <version>${ktor_version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+            <version>${prometheus_version}</version>
+        </dependency>
         <dependency>
             <groupId>com.github.ajalt</groupId>
             <artifactId>clikt</artifactId>
@@ -33,7 +50,7 @@
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-server-content-negotiation-jvm</artifactId>
-            <version>${ktor.version}</version>
+            <version>${ktor_version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -68,7 +85,7 @@
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-serialization-kotlinx-json-jvm</artifactId>
-            <version>${ktor.version}</version>
+            <version>${ktor_version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -104,7 +121,7 @@
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-server-core-jvm</artifactId>
-            <version>${ktor.version}</version>
+            <version>${ktor_version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -116,7 +133,7 @@
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-server-cio-jvm</artifactId>
-            <version>${ktor.version}</version>
+            <version>${ktor_version}</version>
             <exclusions>
                 <exclusion>
                     <groupId>org.slf4j</groupId>
@@ -128,7 +145,7 @@
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-server-test-host-jvm</artifactId>
-            <version>${ktor.version}</version>
+            <version>${ktor_version}</version>
             <scope>test</scope>
             <exclusions>
                 <exclusion>

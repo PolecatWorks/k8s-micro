@@ -3,8 +3,8 @@ package com.polecatworks.kotlin.k8smicro
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
-import com.polecatworks.kotlin.k8smicro.plugins.configureHealthRouting
 import com.polecatworks.kotlin.k8smicro.plugins.configureAppRouting
+import com.polecatworks.kotlin.k8smicro.plugins.configureHealthRouting
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.addFileSource
 import com.sksamuel.hoplite.addResourceSource
@@ -12,6 +12,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.engine.*
+import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.plugins.contentnegotiation.*
 import mu.KotlinLogging
 import java.util.concurrent.atomic.AtomicBoolean
@@ -49,15 +50,16 @@ class Hello : CliktCommand() {
         }
         Runtime.getRuntime().addShutdownHook(shutdownHook)
 
+        val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+
         // Construct our health system
         val myHealth = HealthSystem()
         val healthThread = thread {
-            healthWebServer(myHealth, running)
+            healthWebServer(myHealth, running, healthWebServer, appMicrometerRegistry)
         }
 
-
         val appThread = thread {
-            appWebServer(myHealth, running, config.webserver)
+            appWebServer(myHealth, running, config.webserver, healthWebServer, appMicrometerRegistry)
         }
 
         // Start a randome side thread that ..... may be wobbly so might fail on us after 5 secs
@@ -88,8 +90,7 @@ class Hello : CliktCommand() {
 
 fun main(args: Array<String>) = Hello().main(args)
 
-
-fun appWebServer(health: HealthSystem, running: AtomicBoolean, config: WebServer) {
+fun appWebServer(health: HealthSystem, running: AtomicBoolean, config: WebServer, appMicrometerRegistry: PrometheusMeterRegistry) {
     logger.info { "Starting health server" }
     val myserver = embeddedServer(
         CIO,
@@ -103,9 +104,12 @@ fun appWebServer(health: HealthSystem, running: AtomicBoolean, config: WebServer
         install(ContentNegotiation) {
             json()
         }
+        install(MicrometerMetrics) {
+            registry = appMicrometerRegistry
+        }
         configureAppRouting()
     }
-    .start(wait = false)
+        .start(wait = false)
 
     logger.info("Running app webserver until stopped")
     while (running.get()) {
@@ -116,11 +120,9 @@ fun appWebServer(health: HealthSystem, running: AtomicBoolean, config: WebServer
 
     myserver.stop(100L, 1000L)
     logger.info("Health stopped")
-
 }
 
-
-fun healthWebServer(health: HealthSystem, running: AtomicBoolean) {
+fun healthWebServer(health: HealthSystem, running: AtomicBoolean, appMicrometerRegistry: PrometheusMeterRegistry) {
     logger.info { "Starting health server" }
     val myserver = embeddedServer(
         CIO,
@@ -134,7 +136,8 @@ fun healthWebServer(health: HealthSystem, running: AtomicBoolean) {
         install(ContentNegotiation) {
             json()
         }
-        configureHealthRouting(health)
+        // Does not make sense to install metrics on health server unless we are concerned about its performance
+        configureHealthRouting(health, appMicrometerRegistry)
     }
         .start(wait = false)
 
