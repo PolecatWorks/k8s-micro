@@ -28,3 +28,13 @@ docker-run: docker-build
 
 clean-branches:
 	git branch --merged | egrep -v "(^\*|master|main|dev)" | xargs git branch -d
+
+
+helm-upgrade:
+	helm upgrade -i k8s-micro helm/k8s-micro
+
+alpine-bash:
+	kubectl run -i --tty alpine-$(subst .,-,${USER}) --image=alpine:latest --rm --restart=Never -- sh -c "until apk add curl bind-tools; do echo waiting for sidecar; sleep 3; done;sh"
+
+kubectl-restart:
+	kubectl rollout restart deployment k8s-micro
