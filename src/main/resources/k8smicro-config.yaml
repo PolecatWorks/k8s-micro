@@ -3,4 +3,6 @@ webserver:
   port: 8080
   prefix: /microk8s/v0
 randomThread:
-  sleepTime: PT10S
+  sleepTime: 1s
+example:
+  mytime: 1s

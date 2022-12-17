@@ -4,6 +4,7 @@ import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
 import com.polecatworks.kotlin.k8smicro.plugins.configureHealthRouting
+import com.polecatworks.kotlin.k8smicro.plugins.configureAppRouting
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.addFileSource
 import com.sksamuel.hoplite.addResourceSource
@@ -54,13 +55,18 @@ class Hello : CliktCommand() {
             healthWebServer(myHealth, running)
         }
 
+
+        val appThread = thread {
+            appWebServer(myHealth, running, config.webserver)
+        }
+
         // Start a randome side thread that ..... may be wobbly so might fail on us after 5 secs
         logger.info { "Starting the thread" }
         val randomThread = thread {
             val myh = myHealth.registerAlive("randomThread", 30.seconds)
             println("Started in my random thread")
             for (i in 0..100) {
-                Thread.sleep(config.randomThread.sleepTime.toMillis())
+                Thread.sleep(config.randomThread.sleepTime.inWholeMilliseconds)
                 myh.kick()
             }
             myHealth.deregisterAlive(myh)
@@ -73,6 +79,7 @@ class Hello : CliktCommand() {
         running.set(false)
 
         healthThread.join()
+        appThread.join()
         shutdownHook.join()
 
         logger.info("Successfully closed")
@@ -80,6 +87,38 @@ class Hello : CliktCommand() {
 }
 
 fun main(args: Array<String>) = Hello().main(args)
+
+
+fun appWebServer(health: HealthSystem, running: AtomicBoolean, config: WebServer) {
+    logger.info { "Starting health server" }
+    val myserver = embeddedServer(
+        CIO,
+        port = config.port,
+        host = "0.0.0.0",
+        configure = {
+            connectionIdleTimeoutSeconds = 45
+        }
+    ) {
+        log.info("Hello from module!")
+        install(ContentNegotiation) {
+            json()
+        }
+        configureAppRouting()
+    }
+    .start(wait = false)
+
+    logger.info("Running app webserver until stopped")
+    while (running.get()) {
+        Thread.sleep(1000)
+        logger.info("App webserver is alive")
+    }
+    logger.info("App Webserver is done")
+
+    myserver.stop(100L, 1000L)
+    logger.info("Health stopped")
+
+}
+
 
 fun healthWebServer(health: HealthSystem, running: AtomicBoolean) {
     logger.info { "Starting health server" }
