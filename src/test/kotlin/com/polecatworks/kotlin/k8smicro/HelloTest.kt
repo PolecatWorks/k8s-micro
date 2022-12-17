@@ -1,7 +1,6 @@
 package com.polecatworks.kotlin.k8smicro
 
-import com.polecatworks.kotlin.k8smicro.models.Alive
-import com.polecatworks.kotlin.k8smicro.plugins.configureRouting
+import com.polecatworks.kotlin.k8smicro.plugins.configureHealthRouting
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -20,7 +19,7 @@ class HelloTest {
             install(ContentNegotiation) {
                 json()
             }
-            configureRouting(HealthSystem())
+            configureHealthRouting(HealthSystem())
         }
         val response = client.get("/")
         assertEquals(HttpStatusCode.OK, response.status)

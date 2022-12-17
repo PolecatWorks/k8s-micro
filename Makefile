@@ -25,3 +25,6 @@ docker-bash: docker-build
 
 docker-run: docker-build
 	docker run -it ${IMAGE_NAME}:${VERSION}
+
+clean-branches:
+	git branch --merged | egrep -v "(^\*|master|main|dev)" | xargs git branch -d

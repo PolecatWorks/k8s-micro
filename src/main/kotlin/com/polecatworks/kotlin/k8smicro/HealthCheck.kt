@@ -1,17 +1,21 @@
 package com.polecatworks.kotlin.k8smicro
 
-import java.sql.Time
-import java.time.Duration
-import java.time.LocalDate
+import kotlinx.serialization.Serializable
+import java.time.LocalDateTime
+import kotlin.time.Duration
+
+@Serializable
+data class HealthCheckResult(val name: String, val valid: Boolean)
 
 class HealthCheck(val name: String, val margin: Duration) {
-    var latest = LocalDate.now()
+    var latest = LocalDateTime.now()
 
     public fun kick() {
-        latest = LocalDate.now()
+        latest = LocalDateTime.now()
     }
-    public fun check(time: Time): Boolean {
-        val tempTime = Duration.ofSeconds(3)
-        return tempTime > margin
+    public fun check(time: LocalDateTime): HealthCheckResult {
+//        return latest+ margin < time
+
+        return HealthCheckResult(name, true)
     }
 }

@@ -3,7 +3,7 @@ package com.polecatworks.kotlin.k8smicro
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.option
 import com.github.ajalt.clikt.parameters.types.file
-import com.polecatworks.kotlin.k8smicro.plugins.configureRouting
+import com.polecatworks.kotlin.k8smicro.plugins.configureHealthRouting
 import com.sksamuel.hoplite.ConfigLoaderBuilder
 import com.sksamuel.hoplite.addFileSource
 import com.sksamuel.hoplite.addResourceSource
@@ -13,15 +13,15 @@ import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.plugins.contentnegotiation.*
 import mu.KotlinLogging
-import kotlin.concurrent.thread
 import java.util.concurrent.atomic.AtomicBoolean
+import kotlin.concurrent.thread
+import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
 class Hello : CliktCommand() {
     private val config by option(help = "Config file").file(canBeFile = true)
     private var running = AtomicBoolean(true)
-
 
     override fun run() {
         val configBuilder = ConfigLoaderBuilder.default()
@@ -36,15 +36,14 @@ class Hello : CliktCommand() {
             .loadConfigOrThrow<Config>()
         logger.info("Config= $config")
 
-
         // Register our safe shutdown procedure
         val shutdownHook = thread(start = false) {
             logger.info("Starting the shutdown process. Will take a little while")
 
             Thread.sleep(1000)
-            logger.info{ "Set running to false to shut us down" }
+            logger.info { "Set running to false to shut us down" }
             running.set(false)
-            Thread.sleep(10000)
+            Thread.sleep(1000)
             logger.info("Shutdown prep complete. Now going to close")
         }
         Runtime.getRuntime().addShutdownHook(shutdownHook)
@@ -57,18 +56,20 @@ class Hello : CliktCommand() {
 
         // Start a randome side thread that ..... may be wobbly so might fail on us after 5 secs
         logger.info { "Starting the thread" }
-        val ben = thread {
-            println("i am thread")
-            Thread.sleep(500000)
-            println("Done me")
+        val randomThread = thread {
+            val myh = myHealth.registerAlive("randomThread", 30.seconds)
+            println("Started in my random thread")
+            for (i in 0..100) {
+                Thread.sleep(config.randomThread.sleepTime.toMillis())
+                myh.kick()
+            }
+            myHealth.deregisterAlive(myh)
+            println("Random thread is now done")
         }
 
+        randomThread.join()
 
-        ben.join()
-
-
-
-        logger.info { "Something happend our threads so we shutdown safely by setting running=false" }
+        logger.info { "Something happened our threads so we shutdown safely by setting running=false" }
         running.set(false)
 
         healthThread.join()
@@ -94,7 +95,7 @@ fun healthWebServer(health: HealthSystem, running: AtomicBoolean) {
         install(ContentNegotiation) {
             json()
         }
-        configureRouting(health)
+        configureHealthRouting(health)
     }
         .start(wait = false)
 
