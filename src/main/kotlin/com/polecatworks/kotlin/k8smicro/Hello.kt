@@ -1,3 +1,6 @@
+// This is free software, and you are welcome to redistribute it
+// under certain conditions; See LICENSE file for details.
+
 package com.polecatworks.kotlin.k8smicro
 
 import com.github.ajalt.clikt.core.CliktCommand

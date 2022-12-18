@@ -13,13 +13,13 @@ The objective is to provide:
 * [x] Shutdown hook
 * [X] Logging
 * [ ] Extensible Monitoring
-* [ ] Basic Monitoring (http system, JVM)
-* [ ] README describing dev process and reloads, etc
+* [x] Basic Monitoring (http system, JVM)
 * [ ] git good practices (pre-commit, etc)
 * [x] Modern JDK11
 * [ ] JDK19
 * [ ] Coroutines
-* [ ] License
+* [x] License
+* [ ] README describing dev process and reloads, etc
 * [ ] Useful README
 
 # Approach
