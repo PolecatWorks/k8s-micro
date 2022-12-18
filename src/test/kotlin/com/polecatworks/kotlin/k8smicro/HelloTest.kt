@@ -8,6 +8,8 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.testing.*
+import io.micrometer.prometheus.PrometheusConfig
+import io.micrometer.prometheus.PrometheusMeterRegistry
 import org.junit.Test
 import kotlin.test.assertEquals
 
@@ -19,7 +21,8 @@ class HelloTest {
             install(ContentNegotiation) {
                 json()
             }
-            configureHealthRouting(HealthSystem())
+            val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
+            configureHealthRouting(HealthSystem(), appMicrometerRegistry)
         }
         val response = client.get("/")
         assertEquals(HttpStatusCode.OK, response.status)
@@ -27,6 +30,6 @@ class HelloTest {
 
         var alive_response = client.get("/health/alive")
         assertEquals(HttpStatusCode.OK, alive_response.status)
-        //assertEquals("{\"id\":1,\"firstName\":\"Ben\",\"lastName\":\"Greene\"}", alive_response.bodyAsText())
+        // assertEquals("{\"id\":1,\"firstName\":\"Ben\",\"lastName\":\"Greene\"}", alive_response.bodyAsText())
     }
 }

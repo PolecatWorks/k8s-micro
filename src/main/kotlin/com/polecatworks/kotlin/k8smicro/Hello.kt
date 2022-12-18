@@ -14,6 +14,8 @@ import io.ktor.server.cio.*
 import io.ktor.server.engine.*
 import io.ktor.server.metrics.micrometer.*
 import io.ktor.server.plugins.contentnegotiation.*
+import io.micrometer.prometheus.PrometheusConfig
+import io.micrometer.prometheus.PrometheusMeterRegistry
 import mu.KotlinLogging
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
@@ -55,11 +57,11 @@ class Hello : CliktCommand() {
         // Construct our health system
         val myHealth = HealthSystem()
         val healthThread = thread {
-            healthWebServer(myHealth, running, healthWebServer, appMicrometerRegistry)
+            healthWebServer(myHealth, running, appMicrometerRegistry)
         }
 
         val appThread = thread {
-            appWebServer(myHealth, running, config.webserver, healthWebServer, appMicrometerRegistry)
+            appWebServer(myHealth, running, config.webserver, appMicrometerRegistry)
         }
 
         // Start a randome side thread that ..... may be wobbly so might fail on us after 5 secs
