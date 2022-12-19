@@ -38,3 +38,15 @@ alpine-bash:
 
 kubectl-restart:
 	kubectl rollout restart deployment k8s-micro
+
+ingress-upgrade:
+	helm upgrade --install ingress-nginx ingress-nginx --repo https://kubernetes.github.io/ingress-nginx --namespace ingress-nginx --create-namespace
+	kubectl wait --namespace ingress-nginx --for=condition=ready pod --selector=app.kubernetes.io/component=controller --timeout=120s
+	kubectl apply -f dev/ingress.yaml
+
+port-forward:
+	echo curl command curl http://demo.localdev.me:8080/k8s-micro/v0/
+	kubectl port-forward --namespace=ingress-nginx service/ingress-nginx-controller 8080:80 &
+
+curl-check:
+	curl http://demo.localdev.me:8080/k8s-micro/v0/
