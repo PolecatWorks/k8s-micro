@@ -11,16 +11,23 @@ The objective is to provide:
 * [x] Health services (Alive and Ready)
 * [ ] Startup hook
 * [x] Shutdown hook
-* [X] Logging
-* [ ] Extensible Monitoring
+* [x] Logging
+* [x] Monitoring (https://ktor.io/docs/micrometer-metrics.html#prometheus_endpoint)
+* [ ] Extensible Monitoring (customer monitoring objects)
 * [x] Basic Monitoring (http system, JVM)
-* [ ] git good practices (pre-commit, etc)
+* [ ] OpenAPI (https://ktor.io/docs/openapi.html)
+* [x] git good practices (pre-commit, etc)
 * [x] Modern JDK11
 * [ ] JDK19
-* [ ] Coroutines
+* [x] Coroutines
+* [ ] KTOR development mode (https://ktor.io/docs/auto-reload.html#watch-paths)
 * [x] License
 * [ ] README describing dev process and reloads, etc
 * [ ] Useful README
+* [ ] Review items
+  * [ ] Use of threads + cooroutines
+  * [ ] Structure of code/modules - Health seperation from functional code
+  *
 
 # Approach
 
