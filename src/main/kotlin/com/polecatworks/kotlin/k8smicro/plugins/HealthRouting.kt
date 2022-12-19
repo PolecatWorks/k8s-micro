@@ -4,13 +4,14 @@ import com.polecatworks.kotlin.k8smicro.HealthSystem
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kotlinx.serialization.Serializable
+import io.micrometer.prometheus.PrometheusMeterRegistry
 
-@Serializable
-data class Customer(val id: Int, val firstName: String, val lastName: String)
-
-fun Application.configureHealthRouting(health: HealthSystem) {
+fun Application.configureHealthRouting(health: HealthSystem, appMicrometerRegistry: PrometheusMeterRegistry) {
     routing {
+        get("/metrics") {
+            // Adding prometheus: https://ktor.io/docs/micrometer-metrics.html#install_plugin
+            call.respond(appMicrometerRegistry.scrape())
+        }
         get("/") {
             call.application.environment.log.info("Hello from /api/v1!")
             call.respondText("Hello World!")
@@ -25,7 +26,6 @@ fun Application.configureHealthRouting(health: HealthSystem) {
         get("/health/alive") {
             call.application.environment.log.info("Alive check")
             val myReady = health.checkAlive()
-//            val customer = Customer(1, "Ben", "Greene")
             call.respond(myReady)
         }
     }
