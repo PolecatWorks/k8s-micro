@@ -17,8 +17,6 @@ class HealthCheck(val name: String, val margin: Duration) {
         latest = markNow()
     }
     public fun check(time: ValueTimeMark): HealthCheckResult {
-//        return latest+ margin < time
-
-        return HealthCheckResult(name, true)
+        return HealthCheckResult(name, latest.plus(margin) >= time)
     }
 }
