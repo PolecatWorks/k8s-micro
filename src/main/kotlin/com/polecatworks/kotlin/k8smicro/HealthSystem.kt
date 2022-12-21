@@ -2,10 +2,9 @@ package com.polecatworks.kotlin.k8smicro
 
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
-import java.time.LocalDateTime
 import kotlin.time.Duration
-// import java.time.LocalDateTime
-// import com.polecatworks.kotlin.k8smicro.serialisers.LocalDateTimeSerializer
+import kotlin.time.ExperimentalTime
+import kotlin.time.TimeSource.Monotonic.markNow
 
 // Place definition above class declaration to make field static
 private val logger = KotlinLogging.logger {}
@@ -25,6 +24,7 @@ data class HealthSystemResult(
     val detail: List<HealthCheckResult>
 )
 
+@OptIn(ExperimentalTime::class)
 class HealthSystem {
     val alive = mutableListOf<HealthCheck>()
     val ready = mutableListOf<HealthCheck>()
@@ -32,14 +32,15 @@ class HealthSystem {
         logger.info { "starting HealthSystem" }
     }
 
+    @OptIn(ExperimentalTime::class)
     public fun checkAlive(): HealthSystemResult {
-        val myNow = LocalDateTime.now()
+        val myNow = markNow()
         val results = alive.map { value -> value.check(myNow) }
 
         return HealthSystemResult("alive", results.all { result -> result.valid }, results)
     }
     public fun checkReady(): HealthSystemResult {
-        val myNow = LocalDateTime.now()
+        val myNow = markNow()
         val results = ready.map { value -> value.check(myNow) }
 
         return HealthSystemResult("ready", results.all { result -> result.valid }, results)

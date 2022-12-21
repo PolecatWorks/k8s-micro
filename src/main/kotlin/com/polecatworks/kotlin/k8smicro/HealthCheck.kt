@@ -1,19 +1,22 @@
 package com.polecatworks.kotlin.k8smicro
 
 import kotlinx.serialization.Serializable
-import java.time.LocalDateTime
 import kotlin.time.Duration
+import kotlin.time.ExperimentalTime
+import kotlin.time.TimeSource.Monotonic.ValueTimeMark
+import kotlin.time.TimeSource.Monotonic.markNow
 
 @Serializable
 data class HealthCheckResult(val name: String, val valid: Boolean)
 
+@OptIn(ExperimentalTime::class)
 class HealthCheck(val name: String, val margin: Duration) {
-    var latest = LocalDateTime.now()
+    var latest = markNow()
 
     public fun kick() {
-        latest = LocalDateTime.now()
+        latest = markNow()
     }
-    public fun check(time: LocalDateTime): HealthCheckResult {
+    public fun check(time: ValueTimeMark): HealthCheckResult {
 //        return latest+ margin < time
 
         return HealthCheckResult(name, true)
