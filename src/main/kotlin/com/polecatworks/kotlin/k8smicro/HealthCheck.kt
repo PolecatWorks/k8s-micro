@@ -10,15 +10,20 @@ import kotlin.time.TimeSource.Monotonic.markNow
 data class HealthCheckResult(val name: String, val valid: Boolean)
 
 @OptIn(ExperimentalTime::class)
-class HealthCheck(val name: String, val margin: Duration) {
+interface IHealthCheck {
+    val name: String
+    val margin: Duration
+    public fun check(time: ValueTimeMark): HealthCheckResult
+}
+
+@OptIn(ExperimentalTime::class)
+class HealthCheck(override val name: String, override val margin: Duration) : IHealthCheck {
     var latest = markNow()
 
     public fun kick() {
         latest = markNow()
     }
-    public fun check(time: ValueTimeMark): HealthCheckResult {
-//        return latest+ margin < time
-
-        return HealthCheckResult(name, true)
+    public override fun check(time: ValueTimeMark): HealthCheckResult {
+        return HealthCheckResult(name, latest.plus(margin) >= time)
     }
 }

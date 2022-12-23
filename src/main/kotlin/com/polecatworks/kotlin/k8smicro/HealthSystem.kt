@@ -2,20 +2,11 @@ package com.polecatworks.kotlin.k8smicro
 
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
-import kotlin.time.Duration
 import kotlin.time.ExperimentalTime
-import kotlin.time.TimeSource.Monotonic.markNow
+import kotlin.time.TimeSource.Monotonic.ValueTimeMark
 
 // Place definition above class declaration to make field static
 private val logger = KotlinLogging.logger {}
-
-// @Serializable
-// data class HealthResult(
-//    val name: String,
-// //    @Serializable(LocalDateTimeSerializer::class)
-// //    val lastUpdated: LocalDateTime,
-//    val succeeded: Boolean = true,
-// )
 
 @Serializable
 data class HealthSystemResult(
@@ -26,40 +17,36 @@ data class HealthSystemResult(
 
 @OptIn(ExperimentalTime::class)
 class HealthSystem {
-    val alive = mutableListOf<HealthCheck>()
-    val ready = mutableListOf<HealthCheck>()
+    val alive = mutableListOf<IHealthCheck>()
+    val ready = mutableListOf<IHealthCheck>()
     init {
         logger.info { "starting HealthSystem" }
     }
 
     @OptIn(ExperimentalTime::class)
-    public fun checkAlive(): HealthSystemResult {
-        val myNow = markNow()
+    public fun checkAlive(myNow: ValueTimeMark): HealthSystemResult {
         val results = alive.map { value -> value.check(myNow) }
 
         return HealthSystemResult("alive", results.all { result -> result.valid }, results)
     }
-    public fun checkReady(): HealthSystemResult {
-        val myNow = markNow()
+    public fun checkReady(myNow: ValueTimeMark): HealthSystemResult {
         val results = ready.map { value -> value.check(myNow) }
 
         return HealthSystemResult("ready", results.all { result -> result.valid }, results)
     }
 
-    fun registerAlive(name: String, margin: Duration): HealthCheck {
-        val newHealth = HealthCheck(name, margin)
-        alive.add(newHealth)
-        return newHealth
+    fun registerAlive(myHealth: IHealthCheck): IHealthCheck {
+        alive.add(myHealth)
+        return myHealth
     }
-    fun deregisterAlive(oldHealth: HealthCheck): Boolean {
-        return alive.remove(oldHealth)
+    fun deregisterAlive(myHealth: IHealthCheck): Boolean {
+        return alive.remove(myHealth)
     }
-    fun registerReady(name: String, margin: Duration): HealthCheck {
-        val newHealth = HealthCheck(name, margin)
-        ready.add(newHealth)
-        return newHealth
+    fun registerReady(myHealth: IHealthCheck): IHealthCheck {
+        ready.add(myHealth)
+        return myHealth
     }
-    fun deregisterReady(oldHealth: HealthCheck): Boolean {
-        return ready.remove(oldHealth)
+    fun deregisterReady(myHealth: HealthCheck): Boolean {
+        return ready.remove(myHealth)
     }
 }

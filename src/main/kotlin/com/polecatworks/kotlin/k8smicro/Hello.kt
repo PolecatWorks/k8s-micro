@@ -70,7 +70,8 @@ class Hello : CliktCommand() {
         // Start a randome side thread that ..... may be wobbly so might fail on us after 5 secs
         logger.info { "Starting the thread" }
         val randomThread = thread {
-            val myh = myHealth.registerAlive("randomThread", 30.seconds)
+            val myh = HealthCheck("randomThread", 30.seconds)
+            myHealth.registerAlive(myh)
             println("Started in my random thread")
             for (i in 0..100) {
                 Thread.sleep(config.randomThread.sleepTime.inWholeMilliseconds)
