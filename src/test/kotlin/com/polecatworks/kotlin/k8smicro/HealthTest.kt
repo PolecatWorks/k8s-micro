@@ -99,12 +99,14 @@ class HealthTest {
             val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
             configureHealthRouting(HealthSystem(), appMicrometerRegistry)
         }
-        val response = client.get("/")
-        assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals("Hello World!", response.bodyAsText())
 
-        var alive_response = client.get("/health/alive")
-        assertEquals(HttpStatusCode.OK, alive_response.status)
-        // assertEquals("{\"id\":1,\"firstName\":\"Ben\",\"lastName\":\"Greene\"}", alive_response.bodyAsText())
+        val metricsResponse = client.get("/hams/metrics")
+        assertEquals(HttpStatusCode.OK, metricsResponse.status)
+
+        val aliveResponse = client.get("/hams/alive")
+        assertEquals(HttpStatusCode.OK, aliveResponse.status)
+
+        val readyResponse = client.get("/hams/ready")
+        assertEquals(HttpStatusCode.OK, readyResponse.status)
     }
 }

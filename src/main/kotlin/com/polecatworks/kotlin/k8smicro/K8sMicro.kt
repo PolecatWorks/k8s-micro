@@ -98,7 +98,7 @@ fun main(args: Array<String>) = K8sMicro().main(args)
 
 fun appWebServer(health: HealthSystem, running: AtomicBoolean, config: WebServer, appMicrometerRegistry: PrometheusMeterRegistry) {
     logger.info { "Starting health server" }
-    val myserver = embeddedServer(
+    val healthApiServer = embeddedServer(
         CIO,
         port = config.port,
         host = "0.0.0.0",
@@ -118,13 +118,23 @@ fun appWebServer(health: HealthSystem, running: AtomicBoolean, config: WebServer
         .start(wait = false)
 
     logger.info("Running app webserver until stopped")
+
+//    val ben = runBlocking { // this: CoroutineScope
+//        launch { // launch a new coroutine and continue
+//            delay(1000L) // non-blocking delay for 1 second (default time unit is ms)
+//            println("World!") // print after delay
+//        }
+//        println("Hello") // main coroutine continues while a previous one is delayed
+//    }
+
     while (running.get()) {
         Thread.sleep(1000)
+
         logger.info("App webserver is alive")
     }
     logger.info("App Webserver is done")
 
-    myserver.stop(100L, 1000L)
+    healthApiServer.stop(100L, 1000L)
     logger.info("Health stopped")
 }
 
@@ -157,12 +167,3 @@ fun healthWebServer(health: HealthSystem, running: AtomicBoolean, appMicrometerR
     myserver.stop(100L, 1000L)
     logger.info("Health stopped")
 }
-//
-// fun Application.module() {
-//    log.info("Hello from module!")
-//    install(ContentNegotiation) {
-//        json()
-//    }
-//    configureRouting()
-// //    install()
-// }
