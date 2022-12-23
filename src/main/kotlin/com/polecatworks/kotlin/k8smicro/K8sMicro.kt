@@ -26,7 +26,7 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
-class Hello : CliktCommand() {
+class K8sMicro : CliktCommand() {
     private val config by option(help = "Config file").file(canBeFile = true)
     private var running = AtomicBoolean(true)
 
@@ -94,7 +94,7 @@ class Hello : CliktCommand() {
     }
 }
 
-fun main(args: Array<String>) = Hello().main(args)
+fun main(args: Array<String>) = K8sMicro().main(args)
 
 fun appWebServer(health: HealthSystem, running: AtomicBoolean, config: WebServer, appMicrometerRegistry: PrometheusMeterRegistry) {
     logger.info { "Starting health server" }

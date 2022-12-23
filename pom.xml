@@ -22,7 +22,7 @@
         <prometheus_version>1.10.2</prometheus_version>
         <java.version>11</java.version>
         <kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
-        <main.class>com.polecatworks.kotlin.k8smicro.HelloKt</main.class>
+        <main.class>com.polecatworks.kotlin.k8smicro.K8sMicroKt</main.class>
     </properties>
 
     <dependencies>
