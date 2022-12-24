@@ -8,9 +8,13 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.testing.*
-import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import io.mockk.every
+import io.mockk.mockk
 import org.junit.Test
+import org.mockito.kotlin.mock
+import org.mockito.kotlin.verify
+import org.mockito.kotlin.whenever
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
@@ -91,17 +95,70 @@ class HealthTest {
     }
 
     @Test
+    fun mockTestPrometheusMetricsRegistry() {
+        val mockPrometheusMeterRegistry: PrometheusMeterRegistry = mock()
+        whenever(mockPrometheusMeterRegistry.scrape()).thenReturn("My Metrics")
+        val mymetrics = mockPrometheusMeterRegistry.scrape()
+        verify(mockPrometheusMeterRegistry).scrape()
+    }
+
+    @Test
+    fun mockkTest() {
+        val mockPrometheusMeterRegistry = mockk<PrometheusMeterRegistry>()
+        every { mockPrometheusMeterRegistry.scrape() } returns "My Metrics"
+        assertEquals("My Metrics", mockPrometheusMeterRegistry.scrape())
+        io.mockk.verify {
+            mockPrometheusMeterRegistry.scrape()
+        }
+    }
+
+    @OptIn(ExperimentalTime::class)
+    @Test
+    fun mockTestHealth() {
+        val mockHealthSystem: HealthSystem = mockk()
+        every { mockHealthSystem.checkAlive(any()) } returns HealthSystemResult("alive", true, listOf())
+        val myResult = mockHealthSystem.checkAlive(markNow())
+        io.mockk.verify {
+            mockHealthSystem.checkAlive(any())
+        }
+        println("ALl is klar")
+    }
+
+//    @OptIn(ExperimentalTime::class)
+//    @Test
+//    fun mockTestHealthSystem() {
+//        assertFailsWith<NullPointerException> {
+//            val mockHealthSystem: HealthSystem = mock()
+//            whenever(mockHealthSystem.checkAlive(argThat { true })).thenReturn(
+//                HealthSystemResult(
+//                    "alive",
+//                    true,
+//                    listOf()
+//                )
+//            )
+//
+//            val myResult = mockHealthSystem.checkAlive(markNow())
+//            verify(mockHealthSystem).checkAlive(argThat { true })
+//        }
+//    }
+
+    @Test
     fun testEmbedded() = testApplication {
+        val mockPrometheusMeterRegistry: PrometheusMeterRegistry = mock()
+        whenever(mockPrometheusMeterRegistry.scrape()).thenReturn("My Metrics")
+
+        // TODO: Mock HealthSystem once it is no longer Kotlin Experimental
         application {
             install(ContentNegotiation) {
                 json()
             }
-            val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
-            configureHealthRouting(HealthSystem(), appMicrometerRegistry)
+            configureHealthRouting(HealthSystem(), mockPrometheusMeterRegistry)
         }
 
         val metricsResponse = client.get("/hams/metrics")
         assertEquals(HttpStatusCode.OK, metricsResponse.status)
+        verify(mockPrometheusMeterRegistry).scrape()
+        assertEquals("My Metrics", metricsResponse.bodyAsText())
 
         val aliveResponse = client.get("/hams/alive")
         assertEquals(HttpStatusCode.OK, aliveResponse.status)

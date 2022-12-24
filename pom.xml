@@ -19,6 +19,7 @@
         <ktor_version>2.2.1</ktor_version>
         <serialization.version>1.4.1</serialization.version>
         <logback.version>1.4.5</logback.version>
+        <mockk.version>1.13.3</mockk.version>
         <prometheus_version>1.10.2</prometheus_version>
         <java.version>11</java.version>
         <kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
@@ -26,6 +27,20 @@
     </properties>
 
     <dependencies>
+        <!-- https://mvnrepository.com/artifact/org.mockito.kotlin/mockito-kotlin -->
+        <dependency>
+            <groupId>org.mockito.kotlin</groupId>
+            <artifactId>mockito-kotlin</artifactId>
+            <version>4.1.0</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>io.mockk</groupId>
+            <artifactId>mockk-jvm</artifactId>
+            <version>${mockk.version}</version>
+            <scope>test</scope>
+        </dependency>
+
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-server-metrics-micrometer-jvm</artifactId>

@@ -18,14 +18,14 @@ fun Application.configureHealthRouting(health: HealthSystem, appMicrometerRegist
         get("/hams/ready") {
 //            call.respond(health)
             call.application.environment.log.info("Ready check")
-            var now = TimeSource.Monotonic.markNow()
+            val now = TimeSource.Monotonic.markNow()
             val myReady = health.checkReady(now)
             call.respond(myReady)
 //            call.respondText { "ready" }
         }
         get("/hams/alive") {
             call.application.environment.log.info("Alive check")
-            var now = TimeSource.Monotonic.markNow()
+            val now = TimeSource.Monotonic.markNow()
             val myReady = health.checkAlive(now)
             call.respond(myReady)
         }
