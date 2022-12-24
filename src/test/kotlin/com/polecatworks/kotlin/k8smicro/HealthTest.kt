@@ -97,7 +97,7 @@ class HealthTest {
         val mockPrometheusMeterRegistry = mockk<PrometheusMeterRegistry>()
         every { mockPrometheusMeterRegistry.scrape() } returns "My Metrics"
         assertEquals("My Metrics", mockPrometheusMeterRegistry.scrape())
-        io.mockk.verify {
+        verify {
             mockPrometheusMeterRegistry.scrape()
         }
     }
@@ -108,7 +108,7 @@ class HealthTest {
         val mockHealthSystem: HealthSystem = mockk()
         every { mockHealthSystem.checkAlive(any()) } returns HealthSystemResult("alive", true, listOf())
         val myResult = mockHealthSystem.checkAlive(markNow())
-        io.mockk.verify {
+        verify {
             mockHealthSystem.checkAlive(any())
         }
         println("ALl is klar")
@@ -116,7 +116,7 @@ class HealthTest {
 
     @OptIn(ExperimentalTime::class)
     @Test
-    fun testEmbedded() = testApplication {
+    fun embeddedHealthApi() = testApplication {
         val mockPrometheusMeterRegistry: PrometheusMeterRegistry = mockk()
         every { mockPrometheusMeterRegistry.scrape() } returns "My Metrics"
 

@@ -17,19 +17,19 @@ data class HealthSystemResult(
 
 @OptIn(ExperimentalTime::class)
 class HealthSystem {
-    val alive = mutableListOf<IHealthCheck>()
-    val ready = mutableListOf<IHealthCheck>()
+    private val alive = mutableListOf<IHealthCheck>()
+    private val ready = mutableListOf<IHealthCheck>()
     init {
         logger.info { "starting HealthSystem" }
     }
 
     @OptIn(ExperimentalTime::class)
-    public fun checkAlive(myNow: ValueTimeMark): HealthSystemResult {
+    fun checkAlive(myNow: ValueTimeMark): HealthSystemResult {
         val results = alive.map { value -> value.check(myNow) }
 
         return HealthSystemResult("alive", results.all { result -> result.valid }, results)
     }
-    public fun checkReady(myNow: ValueTimeMark): HealthSystemResult {
+    fun checkReady(myNow: ValueTimeMark): HealthSystemResult {
         val results = ready.map { value -> value.check(myNow) }
 
         return HealthSystemResult("ready", results.all { result -> result.valid }, results)

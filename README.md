@@ -25,8 +25,8 @@ The objective is to provide:
 * [ ] README describing dev process and reloads, etc
 * [ ] Useful README
 * [ ] Review items
-  * [ ] Use of threads + cooroutines
-  * [ ] Structure of code/modules - Health seperation from functional code
+  * [ ] Use of threads + coroutines
+  * [ ] Structure of code/modules - Health separation from functional code
   *
 
 # Approach
@@ -50,7 +50,7 @@ This repo uses the following dependencies:
 
 
 
-## Github Status
+## GitHub Status
 
 ![GitHub](https://img.shields.io/github/license/polecatworks/k8s-micro?style=flat-square)
 ![GitHub last commit](https://img.shields.io/github/last-commit/polecatworks/k8s-micro?style=flat-square)

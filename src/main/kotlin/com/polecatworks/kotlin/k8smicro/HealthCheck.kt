@@ -13,17 +13,17 @@ data class HealthCheckResult(val name: String, val valid: Boolean)
 interface IHealthCheck {
     val name: String
     val margin: Duration
-    public fun check(time: ValueTimeMark): HealthCheckResult
+    fun check(time: ValueTimeMark): HealthCheckResult
 }
 
 @OptIn(ExperimentalTime::class)
 class HealthCheck(override val name: String, override val margin: Duration) : IHealthCheck {
     var latest = markNow()
 
-    public fun kick() {
+    fun kick() {
         latest = markNow()
     }
-    public override fun check(time: ValueTimeMark): HealthCheckResult {
+    override fun check(time: ValueTimeMark): HealthCheckResult {
         return HealthCheckResult(name, latest.plus(margin) >= time)
     }
 }
