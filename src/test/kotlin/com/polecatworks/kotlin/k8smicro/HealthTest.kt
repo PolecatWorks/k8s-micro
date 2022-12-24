@@ -114,17 +114,21 @@ class HealthTest {
         println("ALl is klar")
     }
 
+    @OptIn(ExperimentalTime::class)
     @Test
     fun testEmbedded() = testApplication {
         val mockPrometheusMeterRegistry: PrometheusMeterRegistry = mockk()
         every { mockPrometheusMeterRegistry.scrape() } returns "My Metrics"
 
-        // TODO: Mock HealthSystem once it is no longer Kotlin Experimental
+        val mockHealthSystem: HealthSystem = mockk()
+        every { mockHealthSystem.checkAlive(any()) } returns HealthSystemResult("alive", true, listOf())
+        every { mockHealthSystem.checkReady(any()) } returns HealthSystemResult("ready", true, listOf())
+
         application {
             install(ContentNegotiation) {
                 json()
             }
-            configureHealthRouting(HealthSystem(), mockPrometheusMeterRegistry)
+            configureHealthRouting(mockHealthSystem, mockPrometheusMeterRegistry)
         }
 
         val metricsResponse = client.get("/hams/metrics")
@@ -136,8 +140,14 @@ class HealthTest {
 
         val aliveResponse = client.get("/hams/alive")
         assertEquals(HttpStatusCode.OK, aliveResponse.status)
+        verify {
+            mockHealthSystem.checkAlive(any())
+        }
 
         val readyResponse = client.get("/hams/ready")
         assertEquals(HttpStatusCode.OK, readyResponse.status)
+        verify {
+            mockHealthSystem.checkReady(any())
+        }
     }
 }
