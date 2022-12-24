@@ -9,8 +9,15 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.TimeSource
 
 @OptIn(ExperimentalTime::class)
-fun Application.configureHealthRouting(health: HealthSystem, appMicrometerRegistry: PrometheusMeterRegistry) {
+fun Application.configureHealthRouting(
+    health: HealthSystem,
+    appMicrometerRegistry: PrometheusMeterRegistry,
+    version: String
+) {
     routing {
+        get("/hams/version") {
+            call.respondText { version }
+        }
         get("/hams/metrics") {
             // Adding prometheus: https://ktor.io/docs/micrometer-metrics.html#install_plugin
             call.respond(appMicrometerRegistry.scrape())

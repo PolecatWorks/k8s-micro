@@ -128,8 +128,15 @@ class HealthTest {
             install(ContentNegotiation) {
                 json()
             }
-            configureHealthRouting(mockHealthSystem, mockPrometheusMeterRegistry)
+            configureHealthRouting(
+                mockHealthSystem,
+                mockPrometheusMeterRegistry,
+                "v1.0.0"
+            )
         }
+        val versionResponse = client.get("/hams/version")
+        assertEquals(HttpStatusCode.OK, versionResponse.status)
+        assertEquals("v1.0.0", versionResponse.bodyAsText())
 
         val metricsResponse = client.get("/hams/metrics")
         assertEquals(HttpStatusCode.OK, metricsResponse.status)

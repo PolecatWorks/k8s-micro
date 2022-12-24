@@ -15,6 +15,12 @@ data class HealthSystemResult(
     val detail: List<HealthCheckResult>
 )
 
+/**
+ * A health system for k8s
+ *
+ * Manage the ready and alive objects for a k8s service.
+ * Returns check for alive and ready when requested and calculates this on demand.
+ */
 @OptIn(ExperimentalTime::class)
 class HealthSystem {
     private val alive = mutableListOf<IHealthCheck>()

@@ -31,6 +31,7 @@ class K8sMicro : CliktCommand() {
     private var running = AtomicBoolean(true)
 
     override fun run() {
+        val version = "v1.0.0"
         val configBuilder = ConfigLoaderBuilder.default()
         if (config == null) {
             logger.info("Loading default config from resource")
@@ -60,7 +61,7 @@ class K8sMicro : CliktCommand() {
         // Construct our health system
         val myHealth = HealthSystem()
         val healthThread = thread {
-            healthWebServer(myHealth, running, appMicrometerRegistry)
+            healthWebServer(myHealth, running, appMicrometerRegistry, version)
         }
 
         val appThread = thread {
@@ -138,7 +139,7 @@ fun appWebServer(health: HealthSystem, running: AtomicBoolean, config: WebServer
     logger.info("Health stopped")
 }
 
-fun healthWebServer(health: HealthSystem, running: AtomicBoolean, appMicrometerRegistry: PrometheusMeterRegistry) {
+fun healthWebServer(health: HealthSystem, running: AtomicBoolean, appMicrometerRegistry: PrometheusMeterRegistry, version: String) {
     logger.info { "Starting health server" }
     val myserver = embeddedServer(
         CIO,
@@ -153,7 +154,7 @@ fun healthWebServer(health: HealthSystem, running: AtomicBoolean, appMicrometerR
             json()
         }
         // Does not make sense to install metrics on health server unless we are concerned about its performance
-        configureHealthRouting(health, appMicrometerRegistry)
+        configureHealthRouting(health, appMicrometerRegistry, version)
     }
         .start(wait = false)
 
