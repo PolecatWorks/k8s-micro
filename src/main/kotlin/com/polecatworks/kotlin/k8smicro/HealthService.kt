@@ -30,7 +30,7 @@ class HealthService(
         configure = {
         }
     ) {
-        log.info("Hello from HealthService")
+        log.info("Health Webservice: initialising")
         install(ContentNegotiation) {
             json()
         }
@@ -40,39 +40,42 @@ class HealthService(
     }
 
     init {
-        logger.info { "Starting HealthService" }
-        println("starting")
+        logger.info { "Health Service: Init complete" }
     }
 
     private suspend fun startCoroutines() = coroutineScope { // this: CoroutineScope
         running.set(true)
+        logger.info("Health Service: Set to run")
         launch {
-            startWebServer()
-            println("Go me here")
+            server.start(wait = true)
+            running.set(false) // If we got here then definitely set running to false
         }
+        val threadSleep = 100.milliseconds
+        val myAlive = HealthCheck("Health coroutine", threadSleep * 3) // Limit as 3x of sleep
+        health.registerAlive(myAlive)
         launch {
             while (running.get()) {
-                delay(500.milliseconds.inWholeMilliseconds)
-                println("should kick here")
-//                Add health check kick here
+                delay(threadSleep)
+                myAlive.kick()
             }
-            println("HealthService thread is complete so stopping web service")
+            health.deregisterAlive(myAlive)
             server.stop(1.seconds.inWholeMilliseconds, 100.milliseconds.inWholeMilliseconds)
-            println("HealthService web service stopped")
         }
     }
 
-    private suspend fun startWebServer() = coroutineScope {
-        server.start(wait = true)
-        println("Web service is done")
-    }
-
+    /**
+     * Create blocking coroutine context and wait for completion
+     *
+     * Dispatch web server and health service into this context
+     */
     fun start() = runBlocking {
+        logger.info { "Health coroutines: Starting" }
         startCoroutines()
-        println("Done with coroutines")
+        logger.info { "Health coroutines: Complete" }
     }
 
     fun stop() {
         running.set(false)
+        logger.info("Health Service: Set to stop")
     }
 }

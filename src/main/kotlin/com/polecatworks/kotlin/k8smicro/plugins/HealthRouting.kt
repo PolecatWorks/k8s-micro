@@ -18,6 +18,10 @@ fun Application.configureHealthRouting(
         get("/hams/version") {
             call.respondText { version }
         }
+//        get("/hams/shutdown") {
+//            NOT Sure if this is a good idea or not
+//            call.respondText { "Shutdown initiated" }
+//        }
         get("/hams/metrics") {
             // Adding prometheus: https://ktor.io/docs/micrometer-metrics.html#install_plugin
             call.respond(appMicrometerRegistry.scrape())

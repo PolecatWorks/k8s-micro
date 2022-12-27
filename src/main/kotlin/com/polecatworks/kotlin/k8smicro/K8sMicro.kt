@@ -1,170 +1,66 @@
-// This is free software, and you are welcome to redistribute it
-// under certain conditions; See LICENSE file for details.
-
 package com.polecatworks.kotlin.k8smicro
 
-import com.github.ajalt.clikt.core.CliktCommand
-import com.github.ajalt.clikt.parameters.options.option
-import com.github.ajalt.clikt.parameters.types.file
-import com.polecatworks.kotlin.k8smicro.plugins.configureAppRouting
-import com.polecatworks.kotlin.k8smicro.plugins.configureHealthRouting
-import com.sksamuel.hoplite.ConfigLoaderBuilder
-import com.sksamuel.hoplite.addFileSource
-import com.sksamuel.hoplite.addResourceSource
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.application.*
-import io.ktor.server.cio.*
-import io.ktor.server.engine.*
-import io.ktor.server.metrics.micrometer.*
-import io.ktor.server.plugins.contentnegotiation.*
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import mu.KotlinLogging
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
-import kotlin.time.Duration.Companion.seconds
+import kotlin.time.Duration.Companion.milliseconds
+import kotlin.time.ExperimentalTime
 
 private val logger = KotlinLogging.logger {}
 
-class K8sMicro : CliktCommand() {
-    private val config by option(help = "Config file").file(canBeFile = true)
-    private var running = AtomicBoolean(true)
+/**
+ * Functional definition of the microservice.
+ * All the runtime code is assembled here
+ */
+class K8sMicro(
+    val version: String,
+    private val config: K8sMicroConfig
+) {
+    private val metricsRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
-    override fun run() {
-        val version = "v1.0.0"
-        val configBuilder = ConfigLoaderBuilder.default()
-        if (config == null) {
-            logger.info("Loading default config from resource")
-            configBuilder.addResourceSource("/k8smicro-config.yaml")
-        } else {
-            logger.info("Loading config from file: $config")
-            configBuilder.addFileSource(config!!)
+    private val healthSystem = HealthSystem()
+    private val healthService = HealthService(version, healthSystem, metricsRegistry, 8079)
+    private val appService = AppService(healthSystem, metricsRegistry, config)
+    private var running = AtomicBoolean(false)
+    private val shutdownHook = thread(start = false) {
+        logger.info("Starting shutdown hook")
+//        running.set(false)
+        logger.info("Completing shutdown actions")
+//        Thread.sleep(1000)
+        appService.stop()
+        // healthService.stop() healthService will stop after appService is done
+        while (running.get()) {
+            Thread.sleep(100.milliseconds.inWholeMilliseconds) // Allow services time to shutdown
         }
-        val config = configBuilder.build()
-            .loadConfigOrThrow<Config>()
-        logger.info("Config= $config")
 
-        // Register our safe shutdown procedure
-        val shutdownHook = thread(start = false) {
-            logger.info("Starting the shutdown process. Will take a little while")
-
-            Thread.sleep(1000)
-            logger.info { "Set running to false to shut us down" }
-            running.set(false)
-            Thread.sleep(1000)
-            logger.info("Shutdown prep complete. Now going to close")
-        }
+        logger.info("Shutdown hook complete")
+    }
+    init {
         Runtime.getRuntime().addShutdownHook(shutdownHook)
+    }
 
-        val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
-
-        // Construct our health system
-        val myHealth = HealthSystem()
+    /**
+     * start the microservice and keep the thread until it is complete and all shutdown
+     */
+    @OptIn(ExperimentalTime::class)
+    fun run() {
+        println("Starting my app")
+        running.set(true)
         val healthThread = thread {
-            healthWebServer(myHealth, running, appMicrometerRegistry, version)
+            healthService.start()
+            appService.stop()
         }
 
-        val appThread = thread {
-            appWebServer(myHealth, running, config.webserver, appMicrometerRegistry)
-        }
+        appService.start() // Blocks here while app is running
 
-        // Start a randome side thread that ..... may be wobbly so might fail on us after 5 secs
-        logger.info { "Starting the thread" }
-        val randomThread = thread {
-            val myh = HealthCheck("randomThread", 30.seconds)
-            myHealth.registerAlive(myh)
-            println("Started in my random thread")
-            for (i in 0..100) {
-                Thread.sleep(config.randomThread.sleepTime.inWholeMilliseconds)
-                myh.kick()
-            }
-            myHealth.deregisterAlive(myh)
-            println("Random thread is now done")
-        }
+//        Thread.sleep(10.seconds.inWholeMilliseconds)
 
-        randomThread.join()
-
-        logger.info { "Something happened our threads so we shutdown safely by setting running=false" }
-        running.set(false)
-
+        healthService.stop()
+        logger.info("waiting for health service thread join")
         healthThread.join()
-        appThread.join()
-        shutdownHook.join()
-
-        logger.info("Successfully closed")
+        running.set(false)
+        logger.info("K8sMicro is complete")
     }
-}
-
-fun main(args: Array<String>) = K8sMicro().main(args)
-
-fun appWebServer(health: HealthSystem, running: AtomicBoolean, config: WebServer, appMicrometerRegistry: PrometheusMeterRegistry) {
-    logger.info { "Starting health server" }
-    val healthApiServer = embeddedServer(
-        CIO,
-        port = config.port,
-        host = "0.0.0.0",
-        configure = {
-            connectionIdleTimeoutSeconds = 45
-        }
-    ) {
-        log.info("Hello from module!")
-        install(ContentNegotiation) {
-            json()
-        }
-        install(MicrometerMetrics) {
-            registry = appMicrometerRegistry
-        }
-        configureAppRouting()
-    }
-        .start(wait = false)
-
-    logger.info("Running app webserver until stopped")
-
-//    val ben = runBlocking { // this: CoroutineScope
-//        launch { // launch a new coroutine and continue
-//            delay(1000L) // non-blocking delay for 1 second (default time unit is ms)
-//            println("World!") // print after delay
-//        }
-//        println("Hello") // main coroutine continues while a previous one is delayed
-//    }
-
-    while (running.get()) {
-        Thread.sleep(1000)
-
-        logger.info("App webserver is alive")
-    }
-    logger.info("App Webserver is done")
-
-    healthApiServer.stop(100L, 1000L)
-    logger.info("Health stopped")
-}
-
-fun healthWebServer(health: HealthSystem, running: AtomicBoolean, appMicrometerRegistry: PrometheusMeterRegistry, version: String) {
-    logger.info { "Starting health server" }
-    val myserver = embeddedServer(
-        CIO,
-        port = 8079,
-        host = "0.0.0.0",
-        configure = {
-            connectionIdleTimeoutSeconds = 45
-        }
-    ) {
-        log.info("Hello from module!")
-        install(ContentNegotiation) {
-            json()
-        }
-        // Does not make sense to install metrics on health server unless we are concerned about its performance
-        configureHealthRouting(health, appMicrometerRegistry, version)
-    }
-        .start(wait = false)
-
-    logger.info("Running until stopped")
-    while (running.get()) {
-        Thread.sleep(1000)
-        logger.info("Health system is alive")
-    }
-    logger.info("Alive is done")
-
-    myserver.stop(100L, 1000L)
-    logger.info("Health stopped")
 }

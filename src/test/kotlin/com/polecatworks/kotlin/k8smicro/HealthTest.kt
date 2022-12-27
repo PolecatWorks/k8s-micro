@@ -1,6 +1,8 @@
 package com.polecatworks.kotlin.k8smicro
 
 import com.polecatworks.kotlin.k8smicro.plugins.configureHealthRouting
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -12,7 +14,10 @@ import io.micrometer.prometheus.PrometheusMeterRegistry
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert
 import org.junit.Test
+import kotlin.concurrent.thread
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
@@ -156,5 +161,33 @@ class HealthTest {
         verify {
             mockHealthSystem.checkReady(any())
         }
+    }
+
+    @Test
+    fun healthService(): Unit = runBlocking {
+        // Test startup and shutdown
+        // Test simple http working for version endpoint
+        val mockMetricsRegistry: PrometheusMeterRegistry = mockk()
+        val mockHealthSystem: HealthSystem = mockk()
+
+        val version = "v1.0.0"
+
+        val healthService = HealthService(
+            version,
+            mockHealthSystem,
+            mockMetricsRegistry
+        )
+        val healthThread = thread {
+            healthService.start()
+        }
+
+        val response = HttpClient(CIO).get("http://localhost:${healthService.port}/hams/version")
+
+        Assert.assertEquals(HttpStatusCode.OK, response.status)
+        Assert.assertEquals(version, response.bodyAsText())
+
+        healthService.stop()
+        healthThread.join()
+        println("Done with test")
     }
 }
