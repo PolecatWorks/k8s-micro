@@ -1,4 +1,4 @@
-package com.polecatworks.kotlin.k8smicro
+package com.polecatworks.kotlin.k8smicro.health
 
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock

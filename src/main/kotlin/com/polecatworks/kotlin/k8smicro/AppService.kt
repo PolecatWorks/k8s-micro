@@ -1,5 +1,7 @@
 package com.polecatworks.kotlin.k8smicro
 
+import com.polecatworks.kotlin.k8smicro.health.HealthCheck
+import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import com.polecatworks.kotlin.k8smicro.plugins.configureAppRouting
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*

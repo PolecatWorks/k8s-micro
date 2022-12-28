@@ -1,6 +1,5 @@
-package com.polecatworks.kotlin.k8smicro
+package com.polecatworks.kotlin.k8smicro.health
 
-import com.polecatworks.kotlin.k8smicro.plugins.configureHealthRouting
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
@@ -16,6 +15,7 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
+
 class HealthService(
     val version: String,
     val health: HealthSystem,

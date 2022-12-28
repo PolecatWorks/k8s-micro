@@ -1,4 +1,4 @@
-package com.polecatworks.kotlin.k8smicro
+package com.polecatworks.kotlin.k8smicro.health
 
 import kotlinx.serialization.Serializable
 import kotlin.time.Duration

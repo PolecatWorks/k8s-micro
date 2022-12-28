@@ -1,6 +1,5 @@
-package com.polecatworks.kotlin.k8smicro.plugins
+package com.polecatworks.kotlin.k8smicro.health
 
-import com.polecatworks.kotlin.k8smicro.HealthSystem
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*

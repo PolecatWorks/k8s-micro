@@ -1,6 +1,6 @@
 package com.polecatworks.kotlin.k8smicro
 
-import com.polecatworks.kotlin.k8smicro.plugins.configureHealthRouting
+import com.polecatworks.kotlin.k8smicro.health.*
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
@@ -117,7 +117,6 @@ class HealthTest {
         verify {
             mockHealthSystem.checkAlive(any())
         }
-        println("ALl is klar")
     }
 
     @OptIn(ExperimentalTime::class)
@@ -182,7 +181,7 @@ class HealthTest {
             mockMetricsRegistry
         )
         val healthThread = thread {
-            println("startging")
+            println("starting")
             healthService.start()
             println("done")
         }
