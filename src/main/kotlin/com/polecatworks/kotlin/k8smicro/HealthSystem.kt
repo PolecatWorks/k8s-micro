@@ -45,22 +45,20 @@ class HealthSystem {
         return HealthSystemResult("ready", results.all { result -> result.valid }, results)
     }
 
-    suspend fun registerAlive(myHealth: IHealthCheck): IHealthCheck {
+    suspend fun registerAlive(myHealth: IHealthCheck): Boolean {
         aliveAccess.withLock {
-            alive.add(myHealth)
+            return alive.add(myHealth)
         }
-        return myHealth
     }
     suspend fun deregisterAlive(myHealth: IHealthCheck): Boolean {
         aliveAccess.withLock {
             return alive.remove(myHealth)
         }
     }
-    suspend fun registerReady(myHealth: IHealthCheck): IHealthCheck {
+    suspend fun registerReady(myHealth: IHealthCheck): Boolean {
         readyAccess.withLock {
-            ready.add(myHealth)
+            return ready.add(myHealth)
         }
-        return myHealth
     }
     suspend fun deregisterReady(myHealth: HealthCheck): Boolean {
         readyAccess.withLock {

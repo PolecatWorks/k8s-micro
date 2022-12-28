@@ -11,6 +11,7 @@ import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.testing.*
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
@@ -61,7 +62,7 @@ class HealthTest {
 
     @OptIn(ExperimentalTime::class)
     @Test
-    fun testHealthSystem() {
+    fun testHealthSystem() = runBlocking {
         // Check register, deRegister
         // Check times both in margin, 1 in margin and after removing entry
         // Check no items in health list
@@ -170,6 +171,9 @@ class HealthTest {
         val mockMetricsRegistry: PrometheusMeterRegistry = mockk()
         val mockHealthSystem: HealthSystem = mockk()
 
+        coEvery { mockHealthSystem.registerAlive(any()) } returns true
+        coEvery { mockHealthSystem.deregisterAlive(any()) } returns true
+
         val version = "v1.0.0"
 
         val healthService = HealthService(
@@ -178,10 +182,13 @@ class HealthTest {
             mockMetricsRegistry
         )
         val healthThread = thread {
+            println("startging")
             healthService.start()
+            println("done")
         }
+        val healthPort = 8079
 
-        val response = HttpClient(CIO).get("http://localhost:${healthService.port}/hams/version")
+        val response = HttpClient(CIO).get("http://localhost:$healthPort/hams/version")
 
         Assert.assertEquals(HttpStatusCode.OK, response.status)
         Assert.assertEquals(version, response.bodyAsText())

@@ -40,12 +40,12 @@ class HealthService(
     }
 
     init {
-        logger.info { "Health Service: Init complete" }
+        logger.info { "Init complete" }
     }
 
     private suspend fun startCoroutines() = coroutineScope { // this: CoroutineScope
         running.set(true)
-        logger.info("Health Service: Set to run")
+        logger.info("Set to run")
         launch {
             server.start(wait = true)
             running.set(false) // If we got here then definitely set running to false
@@ -76,6 +76,6 @@ class HealthService(
 
     fun stop() {
         running.set(false)
-        logger.info("Health Service: Set to stop")
+        logger.info("Set to stop")
     }
 }

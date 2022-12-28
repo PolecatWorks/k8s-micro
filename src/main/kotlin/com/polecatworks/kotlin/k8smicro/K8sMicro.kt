@@ -55,8 +55,6 @@ class K8sMicro(
 
         appService.start() // Blocks here while app is running
 
-//        Thread.sleep(10.seconds.inWholeMilliseconds)
-
         healthService.stop()
         logger.info("waiting for health service thread join")
         healthThread.join()
