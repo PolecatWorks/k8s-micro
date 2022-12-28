@@ -1,8 +1,8 @@
-package com.polecatworks.kotlin.k8smicro
+package com.polecatworks.kotlin.k8smicro.app
 
+import com.polecatworks.kotlin.k8smicro.K8sMicroConfig
 import com.polecatworks.kotlin.k8smicro.health.HealthCheck
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
-import com.polecatworks.kotlin.k8smicro.plugins.configureAppRouting
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
@@ -17,6 +17,7 @@ import mu.KotlinLogging
 import java.util.concurrent.atomic.AtomicBoolean
 
 private val logger = KotlinLogging.logger {}
+
 class AppService(
     val health: HealthSystem,
     private val metricsRegistry: PrometheusMeterRegistry,
@@ -37,7 +38,7 @@ class AppService(
         install(MicrometerMetrics) {
             registry = metricsRegistry
         }
-        configureAppRouting(metricsRegistry)
+        configureAppRouting()
     }
 
     init {

@@ -1,5 +1,6 @@
 package com.polecatworks.kotlin.k8smicro
 
+import com.polecatworks.kotlin.k8smicro.app.AppService
 import com.polecatworks.kotlin.k8smicro.health.HealthService
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import io.micrometer.prometheus.PrometheusConfig
