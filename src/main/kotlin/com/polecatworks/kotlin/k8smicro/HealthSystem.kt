@@ -1,5 +1,7 @@
 package com.polecatworks.kotlin.k8smicro
 
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
 import kotlin.time.ExperimentalTime
@@ -25,6 +27,8 @@ data class HealthSystemResult(
 class HealthSystem {
     private val alive = mutableListOf<IHealthCheck>()
     private val ready = mutableListOf<IHealthCheck>()
+    private val aliveAccess = Mutex() // Not a big penalty since adding/removing should be rare
+    private val readyAccess = Mutex() // Not a big penalty since adding/removing should be rare
     init {
         logger.info { "starting HealthSystem" }
     }
@@ -41,18 +45,26 @@ class HealthSystem {
         return HealthSystemResult("ready", results.all { result -> result.valid }, results)
     }
 
-    fun registerAlive(myHealth: IHealthCheck): IHealthCheck {
-        alive.add(myHealth)
+    suspend fun registerAlive(myHealth: IHealthCheck): IHealthCheck {
+        aliveAccess.withLock {
+            alive.add(myHealth)
+        }
         return myHealth
     }
-    fun deregisterAlive(myHealth: IHealthCheck): Boolean {
-        return alive.remove(myHealth)
+    suspend fun deregisterAlive(myHealth: IHealthCheck): Boolean {
+        aliveAccess.withLock {
+            return alive.remove(myHealth)
+        }
     }
-    fun registerReady(myHealth: IHealthCheck): IHealthCheck {
-        ready.add(myHealth)
+    suspend fun registerReady(myHealth: IHealthCheck): IHealthCheck {
+        readyAccess.withLock {
+            ready.add(myHealth)
+        }
         return myHealth
     }
-    fun deregisterReady(myHealth: HealthCheck): Boolean {
-        return ready.remove(myHealth)
+    suspend fun deregisterReady(myHealth: HealthCheck): Boolean {
+        readyAccess.withLock {
+            return ready.remove(myHealth)
+        }
     }
 }

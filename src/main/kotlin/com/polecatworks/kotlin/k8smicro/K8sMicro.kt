@@ -46,7 +46,7 @@ class K8sMicro(
      */
     @OptIn(ExperimentalTime::class)
     fun run() {
-        println("Starting my app")
+        logger.info("K8sMicro starting")
         running.set(true)
         val healthThread = thread {
             healthService.start()
