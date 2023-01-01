@@ -13,7 +13,7 @@ The objective is to provide:
 * [x] Shutdown hook
 * [x] Logging
 * [x] Monitoring (https://ktor.io/docs/micrometer-metrics.html#prometheus_endpoint)
-* [ ] Extensible Monitoring (customer monitoring objects)
+* [x] Extensible Monitoring (customer monitoring objects)
 * [x] Basic Monitoring (http system, JVM)
 * [ ] OpenAPI (https://ktor.io/docs/openapi.html)
 * [x] git good practices (pre-commit, etc)
@@ -22,12 +22,12 @@ The objective is to provide:
 * [x] Coroutines
 * [ ] KTOR development mode (https://ktor.io/docs/auto-reload.html#watch-paths)
 * [x] License
-* [ ] README describing dev process and reloads, etc
 * [ ] Useful README
+  * [ ] README describing dev process and reloads, etc
 * [ ] Review items
-  * [ ] Use of threads + coroutines
-  * [ ] Structure of code/modules - Health separation from functional code
-  *
+  * [x] Use of threads + coroutines
+  * [x] Structure of code/modules - Health separation from functional code
+
 
 # Approach
 
