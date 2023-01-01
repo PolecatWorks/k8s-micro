@@ -29,13 +29,9 @@ class K8sMicro(
     private var running = AtomicBoolean(false)
     private val shutdownHook = thread(start = false) {
         logger.info("Starting shutdown hook")
-//        running.set(false)
-        logger.info("Completing shutdown actions")
-//        Thread.sleep(1000)
         appService.stop()
-        // healthService.stop() healthService will stop after appService is done
-        while (running.get()) {
-            Thread.sleep(100.milliseconds.inWholeMilliseconds) // Allow services time to shutdown
+        while (running.get()) { // Allow services time to shutdown
+            Thread.sleep(100.milliseconds.inWholeMilliseconds)
         }
 
         logger.info("Shutdown hook complete")

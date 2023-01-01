@@ -60,7 +60,7 @@ class HealthSystem {
             return ready.add(myHealth)
         }
     }
-    suspend fun deregisterReady(myHealth: HealthCheck): Boolean {
+    suspend fun deregisterReady(myHealth: IHealthCheck): Boolean {
         readyAccess.withLock {
             return ready.remove(myHealth)
         }

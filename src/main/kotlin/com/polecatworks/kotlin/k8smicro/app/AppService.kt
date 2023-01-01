@@ -1,8 +1,9 @@
 package com.polecatworks.kotlin.k8smicro.app
 
 import com.polecatworks.kotlin.k8smicro.K8sMicroConfig
-import com.polecatworks.kotlin.k8smicro.health.HealthCheck
+import com.polecatworks.kotlin.k8smicro.health.AliveMarginCheck
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
+import com.polecatworks.kotlin.k8smicro.health.ReadyStateCheck
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
@@ -15,11 +16,16 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicInteger
 
 private val logger = KotlinLogging.logger {}
 
+data class AppServiceState(
+    var count: AtomicInteger
+)
+
 class AppService(
-    val health: HealthSystem,
+    private val health: HealthSystem,
     private val metricsRegistry: PrometheusMeterRegistry,
     private val config: K8sMicroConfig
 ) {
@@ -38,9 +44,11 @@ class AppService(
         install(MicrometerMetrics) {
             registry = metricsRegistry
         }
-        configureAppRouting()
+        configureAppRouting(this@AppService)
     }
-
+    val state = AppServiceState(
+        AtomicInteger(0)
+    )
     init {
         logger.info { "App Service: Init complete" }
     }
@@ -52,14 +60,28 @@ class AppService(
             server.start(wait = true)
             running.set(false) // If we get here then definitely set running to false
         }
-        val myAlive = HealthCheck("App coroutine", config.app.threadSleep * 3) // Limit as 3x of sleep
+        val myAlive = AliveMarginCheck("App coroutine", config.app.threadSleep * 3) // Limit as 3x of sleep
+        val myReady = ReadyStateCheck("App coroutine")
         health.registerAlive(myAlive)
+        health.registerReady(myReady)
         launch {
             while (running.get()) {
                 delay(config.app.threadSleep)
+                val myCount = state.count.get()
+                if (myCount > 5) {
+                    myReady.busy()
+                    logger.info("Setting BUSY")
+                } else if (myCount == 0) {
+                    myReady.ready()
+                    logger.info("Setting READY")
+                }
+                if (myCount > 0) {
+                    state.count.decrementAndGet()
+                }
                 myAlive.kick()
             }
             health.deregisterAlive(myAlive)
+            health.deregisterReady(myReady)
             server.stop()
         }
     }

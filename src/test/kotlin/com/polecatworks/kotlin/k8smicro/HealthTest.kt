@@ -37,7 +37,7 @@ class HealthTest {
         val marginTime = 1.seconds
 
         val beforeConstruct = markNow()
-        val dut = HealthCheck("dut", marginTime)
+        val dut = AliveMarginCheck("dut", marginTime)
         val afterConstruct = markNow()
 
         assert(dut.latest > beforeConstruct)
@@ -71,8 +71,8 @@ class HealthTest {
         val marginTimeShort = 500.milliseconds
         val marginTimeLong = 1.seconds
 
-        val myHealthShort = HealthCheck("short", marginTimeShort)
-        val myHealthLong = HealthCheck("long", marginTimeLong)
+        val myHealthShort = AliveMarginCheck("short", marginTimeShort)
+        val myHealthLong = AliveMarginCheck("long", marginTimeLong)
 
         hs.registerAlive(myHealthShort)
         hs.registerAlive(myHealthLong)
