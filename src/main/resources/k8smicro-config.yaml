@@ -4,5 +4,5 @@ webserver:
   prefix: /microk8s/v0
 randomThread:
   sleepTime: 1s
-example:
-  mytime: 1s
+app:
+  threadSleep: 1s

@@ -1,6 +1,8 @@
 package com.polecatworks.kotlin.k8smicro
 
-import com.polecatworks.kotlin.k8smicro.plugins.configureHealthRouting
+import com.polecatworks.kotlin.k8smicro.health.*
+import io.ktor.client.*
+import io.ktor.client.engine.cio.*
 import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
@@ -8,9 +10,15 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.ktor.server.testing.*
-import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.verify
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert
 import org.junit.Test
+import kotlin.concurrent.thread
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
@@ -29,7 +37,7 @@ class HealthTest {
         val marginTime = 1.seconds
 
         val beforeConstruct = markNow()
-        val dut = HealthCheck("dut", marginTime)
+        val dut = AliveMarginCheck("dut", marginTime)
         val afterConstruct = markNow()
 
         assert(dut.latest > beforeConstruct)
@@ -54,7 +62,7 @@ class HealthTest {
 
     @OptIn(ExperimentalTime::class)
     @Test
-    fun testHealthSystem() {
+    fun testHealthSystem() = runBlocking {
         // Check register, deRegister
         // Check times both in margin, 1 in margin and after removing entry
         // Check no items in health list
@@ -63,8 +71,8 @@ class HealthTest {
         val marginTimeShort = 500.milliseconds
         val marginTimeLong = 1.seconds
 
-        val myHealthShort = HealthCheck("short", marginTimeShort)
-        val myHealthLong = HealthCheck("long", marginTimeLong)
+        val myHealthShort = AliveMarginCheck("short", marginTimeShort)
+        val myHealthLong = AliveMarginCheck("long", marginTimeLong)
 
         hs.registerAlive(myHealthShort)
         hs.registerAlive(myHealthLong)
@@ -91,20 +99,101 @@ class HealthTest {
     }
 
     @Test
-    fun testEmbedded() = testApplication {
+    fun mockkPrometheusMeterRegistry() {
+        val mockPrometheusMeterRegistry = mockk<PrometheusMeterRegistry>()
+        every { mockPrometheusMeterRegistry.scrape() } returns "My Metrics"
+        assertEquals("My Metrics", mockPrometheusMeterRegistry.scrape())
+        verify {
+            mockPrometheusMeterRegistry.scrape()
+        }
+    }
+
+    @OptIn(ExperimentalTime::class)
+    @Test
+    fun mockHealthSystem() {
+        val mockHealthSystem: HealthSystem = mockk()
+        every { mockHealthSystem.checkAlive(any()) } returns HealthSystemResult("alive", true, listOf())
+        val myResult = mockHealthSystem.checkAlive(markNow())
+        verify {
+            mockHealthSystem.checkAlive(any())
+        }
+    }
+
+    @OptIn(ExperimentalTime::class)
+    @Test
+    fun embeddedHealthApi() = testApplication {
+        val mockPrometheusMeterRegistry: PrometheusMeterRegistry = mockk()
+        every { mockPrometheusMeterRegistry.scrape() } returns "My Metrics"
+
+        val mockHealthSystem: HealthSystem = mockk()
+        every { mockHealthSystem.checkAlive(any()) } returns HealthSystemResult("alive", true, listOf())
+        every { mockHealthSystem.checkReady(any()) } returns HealthSystemResult("ready", true, listOf())
+
         application {
             install(ContentNegotiation) {
                 json()
             }
-            val appMicrometerRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
-            configureHealthRouting(HealthSystem(), appMicrometerRegistry)
+            configureHealthRouting(
+                mockHealthSystem,
+                mockPrometheusMeterRegistry,
+                "v1.0.0"
+            )
         }
-        val response = client.get("/")
-        assertEquals(HttpStatusCode.OK, response.status)
-        assertEquals("Hello World!", response.bodyAsText())
+        val versionResponse = client.get("/hams/version")
+        assertEquals(HttpStatusCode.OK, versionResponse.status)
+        assertEquals("v1.0.0", versionResponse.bodyAsText())
 
-        var alive_response = client.get("/health/alive")
-        assertEquals(HttpStatusCode.OK, alive_response.status)
-        // assertEquals("{\"id\":1,\"firstName\":\"Ben\",\"lastName\":\"Greene\"}", alive_response.bodyAsText())
+        val metricsResponse = client.get("/hams/metrics")
+        assertEquals(HttpStatusCode.OK, metricsResponse.status)
+        verify {
+            mockPrometheusMeterRegistry.scrape()
+        }
+        assertEquals("My Metrics", metricsResponse.bodyAsText())
+
+        val aliveResponse = client.get("/hams/alive")
+        assertEquals(HttpStatusCode.OK, aliveResponse.status)
+        verify {
+            mockHealthSystem.checkAlive(any())
+        }
+
+        val readyResponse = client.get("/hams/ready")
+        assertEquals(HttpStatusCode.OK, readyResponse.status)
+        verify {
+            mockHealthSystem.checkReady(any())
+        }
+    }
+
+    @Test
+    fun healthService(): Unit = runBlocking {
+        // Test startup and shutdown
+        // Test simple http working for version endpoint
+        val mockMetricsRegistry: PrometheusMeterRegistry = mockk()
+        val mockHealthSystem: HealthSystem = mockk()
+
+        coEvery { mockHealthSystem.registerAlive(any()) } returns true
+        coEvery { mockHealthSystem.deregisterAlive(any()) } returns true
+
+        val version = "v1.0.0"
+
+        val healthService = HealthService(
+            version,
+            mockHealthSystem,
+            mockMetricsRegistry
+        )
+        val healthThread = thread {
+            println("starting")
+            healthService.start()
+            println("done")
+        }
+        val healthPort = 8079
+
+        val response = HttpClient(CIO).get("http://localhost:$healthPort/hams/version")
+
+        Assert.assertEquals(HttpStatusCode.OK, response.status)
+        Assert.assertEquals(version, response.bodyAsText())
+
+        healthService.stop()
+        healthThread.join()
+        println("Done with test")
     }
 }
