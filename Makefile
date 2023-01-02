@@ -1,6 +1,13 @@
 IMAGE_NAME=k8s-micro
 VERSION=2.0.0
 
+export JAVA_HOME = $(shell /usr/libexec/java_home -v 19.0.1)
+
+verify:
+	@mvn verify
+
+package:
+	@mvn package
 
 docker-java-build:
 	docker build --target java-build -t ${IMAGE_NAME}-java-build .

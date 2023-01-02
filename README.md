@@ -18,7 +18,7 @@ The objective is to provide:
 * [ ] OpenAPI (https://ktor.io/docs/openapi.html)
 * [x] git good practices (pre-commit, etc)
 * [x] Modern JDK11
-* [ ] JDK19
+* [x] JDK19
 * [x] Coroutines
 * [ ] KTOR development mode (https://ktor.io/docs/auto-reload.html#watch-paths)
 * [x] License
