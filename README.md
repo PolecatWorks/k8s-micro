@@ -28,7 +28,7 @@ The objective is to provide:
   * [x] Use of threads + coroutines
   * [x] Structure of code/modules - Health separation from functional code
 * [ ] Multiarch Docker images
-
+* [ ] Capture pod id into service configs
 
 
 # Approach
