@@ -15,9 +15,9 @@ docker-build:
 	docker image ls ${IMAGE_NAME}
 
 docker-ma-build:
+	# sudo apt-get install qemu binfmt-support qemu-user-static
 	# docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 	# docker buildx create --name monkey --use
-	# sudo apt-get install qemu binfmt-support qemu-user-static
 	docker buildx build --platform linux/arm64,linux/amd64 --target publish -t ${IMAGE_NAME}:${VERSION} .
 	docker buildx build --platform linux/arm64 --target publish --load -t ${IMAGE_NAME}:${VERSION}-arm64 .
 	docker buildx build --platform linux/amd64 --target publish --load -t ${IMAGE_NAME}:${VERSION}-amd64 .
