@@ -11,7 +11,8 @@ import kotlin.time.TimeSource
 fun Application.configureHealthRouting(
     health: HealthSystem,
     appMicrometerRegistry: PrometheusMeterRegistry,
-    version: String
+    version: String,
+    healthService: HealthService
 ) {
     routing {
         get("/hams/version") {
@@ -23,6 +24,7 @@ fun Application.configureHealthRouting(
         }
         get("/hams/stop") {
             // TODO: Implement this using running. How to propagate to application service
+            healthService.stop()
             call.respondText { "Shutdown initiated" }
         }
         get("/hams/metrics") {

@@ -136,7 +136,8 @@ class HealthTest {
             configureHealthRouting(
                 mockHealthSystem,
                 mockPrometheusMeterRegistry,
-                "v1.0.0"
+                "v1.0.0",
+                this
             )
         }
         val versionResponse = client.get("/hams/version")

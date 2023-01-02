@@ -31,11 +31,18 @@ class AliveMarginCheck(override val name: String, val margin: Duration) : IHealt
 class ReadyStateCheck(override val name: String) : IHealthCheck {
     var state = AtomicBoolean(false)
 
-    fun busy() {
-        state.set(false)
+    /**
+     * Set to busy and return true if state change occurred
+     */
+    fun busy(): Boolean {
+        return state.getAndSet(false)
     }
-    fun ready() {
-        state.set(true)
+
+    /**
+     * Set to ready and return true if state change occurred
+     */
+    fun ready(): Boolean {
+        return !state.getAndSet(true)
     }
 
     @OptIn(ExperimentalTime::class)
