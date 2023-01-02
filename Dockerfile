@@ -1,6 +1,7 @@
 # https://codefresh.io/blog/java_docker_pipeline/
+ARG JAVA_VERSION=19
 
-FROM eclipse-temurin:11 as java-build
+FROM eclipse-temurin:${JAVA_VERSION} as java-build
 # ----
 # Install Maven
 # RUN apk add --no-cache curl tar bash
@@ -28,7 +29,7 @@ RUN mvn verify
 RUN jar --file=target/k8s-micro-1.0-SNAPSHOT-jar-with-dependencies.jar --describe-module > modules.txt
 
 
-FROM eclipse-temurin:11 as jre-build
+FROM eclipse-temurin:${JAVA_VERSION} as jre-build
 # https://hub.docker.com/_/eclipse-temurin
 
 # Create a custom Java runtime

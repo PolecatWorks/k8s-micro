@@ -21,8 +21,8 @@
         <logback.version>1.4.5</logback.version>
         <mockk.version>1.13.3</mockk.version>
         <prometheus_version>1.10.2</prometheus_version>
-        <java.version>11</java.version>
-        <kotlin.compiler.jvmTarget>11</kotlin.compiler.jvmTarget>
+        <java.version>19</java.version>
+        <kotlin.compiler.jvmTarget>19</kotlin.compiler.jvmTarget>
         <main.class>com.polecatworks.kotlin.k8smicro.K8sMicroCliKt</main.class>
     </properties>
 

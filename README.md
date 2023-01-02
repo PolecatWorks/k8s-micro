@@ -18,7 +18,7 @@ The objective is to provide:
 * [ ] OpenAPI (https://ktor.io/docs/openapi.html)
 * [x] git good practices (pre-commit, etc)
 * [x] Modern JDK11
-* [ ] JDK19
+* [x] JDK19
 * [x] Coroutines
 * [ ] KTOR development mode (https://ktor.io/docs/auto-reload.html#watch-paths)
 * [x] License
@@ -28,7 +28,7 @@ The objective is to provide:
   * [x] Use of threads + coroutines
   * [x] Structure of code/modules - Health separation from functional code
 * [ ] Multiarch Docker images
-
+* [ ] Capture pod id into service configs
 
 
 # Approach

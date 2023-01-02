@@ -9,8 +9,8 @@ repos:
     -   id: trailing-whitespace
         exclude: ^.idea/
     -   id: check-added-large-files
-#    -   id: no-commit-to-branch
-#        args: ['--branch', 'main']
+    -   id: no-commit-to-branch
+        args: ['--branch', 'main']
 -   repo: https://github.com/macisamuele/language-formatters-pre-commit-hooks
     rev: v2.5.0
     hooks:
