@@ -4,7 +4,7 @@ FROM eclipse-temurin:11 as java-build
 # ----
 # Install Maven
 # RUN apk add --no-cache curl tar bash
-ARG MAVEN_VERSION=3.8.6
+ARG MAVEN_VERSION=3.8.7
 ARG USER_HOME_DIR="/root"
 RUN mkdir -p /usr/share/maven && \
 curl -fsSL http://apache.osuosl.org/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz | tar -xzC /usr/share/maven --strip-components=1 && \
