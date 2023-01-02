@@ -27,9 +27,29 @@ The objective is to provide:
 * [ ] Review items
   * [x] Use of threads + coroutines
   * [x] Structure of code/modules - Health separation from functional code
+* [ ] Multiarch Docker images
+
 
 
 # Approach
+
+## Multiarch images
+
+Create multiarch images amd64 and arm64 with Docker
+Prepare by installing qemu. Then add support to docker buildx to use qemu.
+Once the images are build they need to be loaded from buildx to docker itself. Load is currently broken for multiarch so needs to be done per image https://github.com/docker/buildx/issues/59
+Once the images are published as platform specific images we can then publish a manifest with the multiarch image.
+
+	  sudo apt-get install qemu binfmt-support qemu-user-static
+    docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+    docker buildx create --name mybuildercontext --use
+
+This link https://github.com/docker/cli/issues/3350 possibly indicates that it may be possible to create the multiarch images locally and push as a single image.
+BUT on confirmation this does not work as it is required for the images to be pushed to a repository.
+
+    docker push {IMAGE_NAME}:${VERSION}-amd64
+    docker push {IMAGE_NAME}:${VERSION}-arm64
+    docker manifest create ${IMAGE_NAME}:${VERSION} ${IMAGE_NAME}:${VERSION}-arm64 ${IMAGE_NAME}:${VERSION}-amd64
 
 
 # Dependencies

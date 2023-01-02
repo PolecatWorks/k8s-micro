@@ -14,6 +14,20 @@ docker-build:
 	docker build --target publish -t ${IMAGE_NAME}:${VERSION} .
 	docker image ls ${IMAGE_NAME}
 
+docker-ma-build:
+	# docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
+	# docker buildx create --name monkey --use
+	# sudo apt-get install qemu binfmt-support qemu-user-static
+	docker buildx build --platform linux/arm64,linux/amd64 --target publish -t ${IMAGE_NAME}:${VERSION} .
+	docker buildx build --platform linux/arm64 --target publish --load -t ${IMAGE_NAME}:${VERSION}-arm64 .
+	docker buildx build --platform linux/amd64 --target publish --load -t ${IMAGE_NAME}:${VERSION}-amd64 .
+	# this also seems and issue https://github.com/docker/cli/issues/3350
+	docker manifest create ${IMAGE_NAME}:${VERSION} --amend ${IMAGE_NAME}:${VERSION}-arm64 --amend ${IMAGE_NAME}:${VERSION}-amd64
+	# Load FAILS because of this: https://github.com/docker/buildx/issues/59
+	# docker buildx build --platform linux/amd64,linux/arm64 --target publish -t ${IMAGE_NAME}:${VERSION} .
+	# docker buildx build --platform linux/arm64/v8,linux/amd64 --target publish -t ${IMAGE_NAME}:${VERSION} .
+	# docker image ls ${IMAGE_NAME}
+
 docker-java-build-bash: docker-java-build
 	docker run -it ${IMAGE_NAME}-java-build /bin/bash
 
