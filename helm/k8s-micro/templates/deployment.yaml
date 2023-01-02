@@ -41,14 +41,27 @@ spec:
             - name: http-web
               containerPort: 8080
               protocol: TCP
+          lifecycle:
+            preStop:
+              httpGet:
+                port: http-health
+                path: "/hams/stop"
+          startupProbe:
+            httpGet:
+              port: http-health
+              path: "/hams/startup"
+            failureThreshold: {{ .Values.health.startupProbe.failureThreshold }}
+            periodSeconds: {{ .Values.health.startupProbe.periodSeconds }}
           livenessProbe:
             httpGet:
               port: http-health
-              path: "/health/alive"
+              path: "/hams/alive"
+            periodSeconds: {{ .Values.health.livenessProbe.periodSeconds }}
           readinessProbe:
             httpGet:
               port: http-health
-              path: "/health/ready"
+              path: "/hams/ready"
+            periodSeconds: {{ .Values.health.readinessProbe.periodSeconds }}
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
       {{- with .Values.nodeSelector }}

@@ -6,6 +6,15 @@ env: {}
 
 replicaCount: 1
 
+health:
+  startupProbe:
+    failureThreshold: 30
+    periodSeconds: 10
+  livenessProbe:
+    periodSeconds: 30
+  readinessProbe:
+    periodSeconds: 5
+
 
 image:
   repository: k8s-micro
@@ -66,4 +75,3 @@ nodeSelector: {}
 tolerations: []
 
 affinity: {}
-
