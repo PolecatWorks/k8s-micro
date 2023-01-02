@@ -129,6 +129,8 @@ class HealthTest {
         every { mockHealthSystem.checkAlive(any()) } returns HealthSystemResult("alive", true, listOf())
         every { mockHealthSystem.checkReady(any()) } returns HealthSystemResult("ready", true, listOf())
 
+        val mockHealthService: HealthService = mockk()
+
         application {
             install(ContentNegotiation) {
                 json()
@@ -136,7 +138,8 @@ class HealthTest {
             configureHealthRouting(
                 mockHealthSystem,
                 mockPrometheusMeterRegistry,
-                "v1.0.0"
+                "v1.0.0",
+                mockHealthService
             )
         }
         val versionResponse = client.get("/hams/version")

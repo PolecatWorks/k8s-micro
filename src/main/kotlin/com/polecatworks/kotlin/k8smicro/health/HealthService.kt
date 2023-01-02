@@ -36,7 +36,7 @@ class HealthService(
         }
         // Does not make sense to install metrics on health server unless we are concerned about its performance
 
-        configureHealthRouting(health, metricsRegistry, version)
+        configureHealthRouting(health, metricsRegistry, version, this@HealthService)
     }
 
     init {

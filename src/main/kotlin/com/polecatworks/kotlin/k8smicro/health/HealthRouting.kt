@@ -11,16 +11,22 @@ import kotlin.time.TimeSource
 fun Application.configureHealthRouting(
     health: HealthSystem,
     appMicrometerRegistry: PrometheusMeterRegistry,
-    version: String
+    version: String,
+    healthService: HealthService
 ) {
     routing {
         get("/hams/version") {
             call.respondText { version }
         }
-//        get("/hams/shutdown") {
-//            NOT Sure if this is a good idea or not
-//            call.respondText { "Shutdown initiated" }
-//        }
+        get("/hams/startup") {
+            // Simple probe that confirms the web service is running
+            call.respondText { "startup good" }
+        }
+        get("/hams/stop") {
+            // TODO: Implement this using running. How to propagate to application service
+            healthService.stop()
+            call.respondText { "Shutdown initiated" }
+        }
         get("/hams/metrics") {
             // Adding prometheus: https://ktor.io/docs/micrometer-metrics.html#install_plugin
             call.respond(appMicrometerRegistry.scrape())

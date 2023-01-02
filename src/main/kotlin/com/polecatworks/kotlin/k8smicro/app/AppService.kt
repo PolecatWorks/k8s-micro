@@ -69,11 +69,13 @@ class AppService(
                 delay(config.app.threadSleep)
                 val myCount = state.count.get()
                 if (myCount > 5) {
-                    myReady.busy()
-                    logger.info("Setting BUSY")
+                    if (myReady.busy()) {
+                        logger.info("Setting BUSY")
+                    }
                 } else if (myCount == 0) {
-                    myReady.ready()
-                    logger.info("Setting READY")
+                    if (myReady.ready()) {
+                        logger.info("Setting READY")
+                    }
                 }
                 if (myCount > 0) {
                     state.count.decrementAndGet()

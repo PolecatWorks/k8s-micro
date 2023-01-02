@@ -9,7 +9,7 @@ The objective is to provide:
 * [x] CLI arguments
 * [x] Config loading
 * [x] Health services (Alive and Ready)
-* [ ] Startup hook
+* [x] Startup hook
 * [x] Shutdown hook
 * [x] Logging
 * [x] Monitoring (https://ktor.io/docs/micrometer-metrics.html#prometheus_endpoint)
