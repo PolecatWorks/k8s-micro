@@ -6,13 +6,15 @@ import io.ktor.server.routing.*
 
 fun Application.configureAppRouting(application: AppService) {
     routing {
-        get("/k8s-micro/v0/") {
-            call.application.environment.log.info("Hello from /api/v1!")
-            call.respondText("Hello World!")
-        }
-        get("/k8s-micro/v0/count") {
-            val tempCount = application.state.count.incrementAndGet()
-            call.respondText("Count = $tempCount")
+        route(application.config.webserver.prefix) {
+            get("/") {
+                call.application.environment.log.info("Hello from /api/v1!")
+                call.respondText("Hello World!")
+            }
+            get("/count") {
+                val tempCount = application.state.count.incrementAndGet()
+                call.respondText("Count = $tempCount")
+            }
         }
     }
 }

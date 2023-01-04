@@ -27,7 +27,7 @@ data class AppServiceState(
 class AppService(
     private val health: HealthSystem,
     private val metricsRegistry: PrometheusMeterRegistry,
-    private val config: K8sMicroConfig
+    val config: K8sMicroConfig
 ) {
 
     private val running = AtomicBoolean(false)
