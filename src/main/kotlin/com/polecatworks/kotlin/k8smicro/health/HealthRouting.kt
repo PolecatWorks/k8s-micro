@@ -15,35 +15,37 @@ fun Application.configureHealthRouting(
     healthService: HealthService
 ) {
     routing {
-        get("/hams/version") {
-            call.respondText { version }
-        }
-        get("/hams/startup") {
-            // Simple probe that confirms the web service is running
-            call.respondText { "startup good" }
-        }
-        get("/hams/stop") {
-            // TODO: Implement this using running. How to propagate to application service
-            healthService.stop()
-            call.respondText { "Shutdown initiated" }
-        }
-        get("/hams/metrics") {
-            // Adding prometheus: https://ktor.io/docs/micrometer-metrics.html#install_plugin
-            call.respond(appMicrometerRegistry.scrape())
-        }
-        get("/hams/ready") {
+        route("/hams") {
+            get("/version") {
+                call.respondText { version }
+            }
+            get("/startup") {
+                // Simple probe that confirms the web service is running
+                call.respondText { "startup good" }
+            }
+            get("/stop") {
+                // TODO: Implement this using running. How to propagate to application service
+                healthService.stop()
+                call.respondText { "Shutdown initiated" }
+            }
+            get("/metrics") {
+                // Adding prometheus: https://ktor.io/docs/micrometer-metrics.html#install_plugin
+                call.respond(appMicrometerRegistry.scrape())
+            }
+            get("/ready") {
 //            call.respond(health)
-            call.application.environment.log.info("Ready check")
-            val now = TimeSource.Monotonic.markNow()
-            val myReady = health.checkReady(now)
-            call.respond(myReady)
+                call.application.environment.log.info("Ready check")
+                val now = TimeSource.Monotonic.markNow()
+                val myReady = health.checkReady(now)
+                call.respond(myReady)
 //            call.respondText { "ready" }
-        }
-        get("/hams/alive") {
-            call.application.environment.log.info("Alive check")
-            val now = TimeSource.Monotonic.markNow()
-            val myReady = health.checkAlive(now)
-            call.respond(myReady)
+            }
+            get("/alive") {
+                call.application.environment.log.info("Alive check")
+                val now = TimeSource.Monotonic.markNow()
+                val myReady = health.checkAlive(now)
+                call.respond(myReady)
+            }
         }
     }
 }
