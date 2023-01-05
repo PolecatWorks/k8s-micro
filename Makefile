@@ -7,7 +7,11 @@ verify:
 	@mvn verify
 
 package:
-	@mvn package
+	@mvn package ${MAVEN_ARGS}
+
+run: MAVEN_ARGS=-DskipTests
+run: package
+	@java -jar  target/k8s-micro-1.0-SNAPSHOT-jar-with-dependencies.jar
 
 docker-java-build:
 	docker build --target java-build -t ${IMAGE_NAME}-java-build .

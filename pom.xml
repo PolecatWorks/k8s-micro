@@ -27,6 +27,12 @@
     </properties>
 
     <dependencies>
+        <!-- https://github.com/LukasForst/ktor-openapi-generator -->
+        <dependency>
+            <groupId>dev.forst</groupId>
+            <artifactId>ktor-openapi-generator</artifactId>
+            <version>0.5.4</version>
+        </dependency>
         <!--  https://mockk.io/      -->
         <dependency>
             <groupId>io.mockk</groupId>

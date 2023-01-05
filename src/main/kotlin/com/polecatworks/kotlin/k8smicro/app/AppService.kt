@@ -1,5 +1,6 @@
 package com.polecatworks.kotlin.k8smicro.app
 
+import com.papsign.ktor.openapigen.OpenAPIGen
 import com.polecatworks.kotlin.k8smicro.K8sMicroConfig
 import com.polecatworks.kotlin.k8smicro.health.AliveMarginCheck
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
@@ -38,6 +39,18 @@ class AppService(
         configure = {}
     ) {
         log.info("App Webservice: initialising")
+        install(OpenAPIGen) {
+            // serveOpenApiJson = true
+            info {
+                title = "k8s-minimal"
+                version = "0.0.0"
+                description = "K8s Micro API"
+                contact {
+                    name = "Ben Greene"
+                    email = "BenJGreene+polecatworks@gmail.com"
+                }
+            }
+        }
         install(ContentNegotiation) {
             json()
         }
