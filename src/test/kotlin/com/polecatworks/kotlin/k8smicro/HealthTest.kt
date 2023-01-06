@@ -1,5 +1,6 @@
 package com.polecatworks.kotlin.k8smicro
 
+import com.polecatworks.kotlin.k8smicro.app.AppService
 import com.polecatworks.kotlin.k8smicro.health.*
 import io.ktor.client.*
 import io.ktor.client.engine.cio.*
@@ -122,6 +123,8 @@ class HealthTest {
     @OptIn(ExperimentalTime::class)
     @Test
     fun embeddedHealthApi() = testApplication {
+        val appService: AppService = mockk()
+
         val mockPrometheusMeterRegistry: PrometheusMeterRegistry = mockk()
         every { mockPrometheusMeterRegistry.scrape() } returns "My Metrics"
 
@@ -136,9 +139,10 @@ class HealthTest {
                 json()
             }
             configureHealthRouting(
-                mockHealthSystem,
-                mockPrometheusMeterRegistry,
                 "v1.0.0",
+                appService,
+                mockPrometheusMeterRegistry,
+                mockHealthSystem,
                 mockHealthService
             )
         }
@@ -170,6 +174,7 @@ class HealthTest {
     fun healthService(): Unit = runBlocking {
         // Test startup and shutdown
         // Test simple http working for version endpoint
+        val appService: AppService = mockk()
         val mockMetricsRegistry: PrometheusMeterRegistry = mockk()
         val mockHealthSystem: HealthSystem = mockk()
 
@@ -180,8 +185,9 @@ class HealthTest {
 
         val healthService = HealthService(
             version,
-            mockHealthSystem,
-            mockMetricsRegistry
+            appService,
+            mockMetricsRegistry,
+            mockHealthSystem
         )
         val healthThread = thread {
             println("starting")

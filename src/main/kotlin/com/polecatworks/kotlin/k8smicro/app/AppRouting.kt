@@ -4,14 +4,12 @@ import com.papsign.ktor.openapigen.annotations.Path
 import com.papsign.ktor.openapigen.annotations.Response
 import com.papsign.ktor.openapigen.annotations.parameters.PathParam
 import com.papsign.ktor.openapigen.annotations.parameters.QueryParam
-import com.papsign.ktor.openapigen.openAPIGen
 import com.papsign.ktor.openapigen.route.apiRouting
 import com.papsign.ktor.openapigen.route.path.normal.get
 import com.papsign.ktor.openapigen.route.response.respond
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
-import kserialize
 // Path works like the @Location from locations, but for transparency we recommend only using it to extract the parameters
 @Path("string/{a}")
 data class StringParam(
@@ -38,9 +36,6 @@ fun Application.configureAppRouting(appService: AppService) {
                 get("/count") {
                     val tempCount = appService.state.count.incrementAndGet()
                     call.respondText("Count = $tempCount")
-                }
-                get("/openapi") {
-                    call.respond(application.openAPIGen.api.kserialize())
                 }
             }
         }

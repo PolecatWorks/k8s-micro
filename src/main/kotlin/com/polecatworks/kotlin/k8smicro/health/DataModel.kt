@@ -13,7 +13,6 @@ fun DataModel.kserialize(): JsonElement {
             is JsonElement -> this
             else -> {
                 if (this != null) throw IllegalStateException("The type ${this.javaClass} ($this) is unknown")
-                // if (this!=null) System.err.println("The type $this is unknown")
                 JsonNull
             }
         }

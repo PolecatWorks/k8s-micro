@@ -1,6 +1,7 @@
 package com.polecatworks.kotlin.k8smicro.app
 
 import com.papsign.ktor.openapigen.OpenAPIGen
+import com.papsign.ktor.openapigen.openAPIGen
 import com.polecatworks.kotlin.k8smicro.K8sMicroConfig
 import com.polecatworks.kotlin.k8smicro.health.AliveMarginCheck
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
@@ -59,6 +60,7 @@ class AppService(
         }
         configureAppRouting(this@AppService)
     }
+    val openAPIGen get() = this.server.application.openAPIGen
     val state = AppServiceState(
         AtomicInteger(0)
     )
