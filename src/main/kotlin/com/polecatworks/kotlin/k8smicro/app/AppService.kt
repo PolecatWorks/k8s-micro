@@ -10,6 +10,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.metrics.micrometer.*
+import io.ktor.server.plugins.callloging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.coroutineScope
@@ -40,6 +41,9 @@ class AppService(
         configure = {}
     ) {
         log.info("App Webservice: initialising")
+        install(CallLogging) {
+            // level = Level.INFO
+        }
         install(OpenAPIGen) {
             // serveOpenApiJson = true
             info {
