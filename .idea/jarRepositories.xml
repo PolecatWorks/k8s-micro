@@ -7,6 +7,26 @@
       <option name="url" value="https://repo.maven.apache.org/maven2" />
     </remote-repository>
     <remote-repository>
+      <option name="id" value="drsi-releases" />
+      <option name="name" value="drsi-releases" />
+      <option name="url" value="https://artifacts.corp.digitalreasoning.com:443/artifactory/drsi" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="snapshots" />
+      <option name="name" value="global-maven-snapshots" />
+      <option name="url" value="https://artifacts.corp.digitalreasoning.com:443/artifactory/global-maven-snapshots" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="central" />
+      <option name="name" value="global-maven" />
+      <option name="url" value="https://artifacts.corp.digitalreasoning.com:443/artifactory/global-maven" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="drsi-thirdparty" />
+      <option name="name" value="thirdparty" />
+      <option name="url" value="https://artifacts.corp.digitalreasoning.com:443/artifactory/thirdparty" />
+    </remote-repository>
+    <remote-repository>
       <option name="id" value="central" />
       <option name="name" value="Maven Central repository" />
       <option name="url" value="https://repo1.maven.org/maven2" />
@@ -15,6 +35,16 @@
       <option name="id" value="jboss.community" />
       <option name="name" value="JBoss Community repository" />
       <option name="url" value="https://repository.jboss.org/nexus/content/repositories/public/" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="drsi-snapshots" />
+      <option name="name" value="drsi-snapshots" />
+      <option name="url" value="https://artifacts.corp.digitalreasoning.com:443/artifactory/drsi" />
+    </remote-repository>
+    <remote-repository>
+      <option name="id" value="drsi-managed-thirdparty" />
+      <option name="name" value="thirdparty" />
+      <option name="url" value="https://artifacts.corp.digitalreasoning.com:443/artifactory/managed-third-party" />
     </remote-repository>
   </component>
 </project>
