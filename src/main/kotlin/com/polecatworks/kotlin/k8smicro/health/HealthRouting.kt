@@ -37,18 +37,19 @@ fun Application.configureHealthRouting(
             }
             get("/ready") {
 //            call.respond(health)
-                call.application.environment.log.info("Ready check")
+
                 val now = TimeSource.Monotonic.markNow()
                 val myReady = health.checkReady(now)
                 call.response.status(if (myReady.valid) HttpStatusCode.OK else HttpStatusCode.TooManyRequests)
+                call.application.environment.log.info("Ready check: $myReady")
                 call.respond(myReady)
 //            call.respondText { "ready" }
             }
             get("/alive") {
-                call.application.environment.log.info("Alive check")
                 val now = TimeSource.Monotonic.markNow()
                 val myReady = health.checkAlive(now)
                 call.response.status(if (myReady.valid) HttpStatusCode.OK else HttpStatusCode.NotAcceptable)
+                call.application.environment.log.info("Alive check: $myReady")
                 call.respond(myReady)
             }
             get("/openapi") {
