@@ -9,7 +9,6 @@ import mu.KotlinLogging
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 import kotlin.time.Duration.Companion.milliseconds
-import kotlin.time.ExperimentalTime
 
 private val logger = KotlinLogging.logger {}
 
@@ -24,8 +23,8 @@ class K8sMicro(
     private val metricsRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
     private val healthSystem = HealthSystem()
-    private val healthService = HealthService(version, healthSystem, metricsRegistry, 8079)
     private val appService = AppService(healthSystem, metricsRegistry, config)
+    private val healthService = HealthService(version, appService, metricsRegistry, healthSystem, 8079)
     private var running = AtomicBoolean(false)
     private val shutdownHook = thread(start = false) {
         logger.info("Starting shutdown hook")
@@ -43,7 +42,6 @@ class K8sMicro(
     /**
      * start the microservice and keep the thread until it is complete and all shutdown
      */
-    @OptIn(ExperimentalTime::class)
     fun run() {
         logger.info("K8sMicro starting")
         running.set(true)

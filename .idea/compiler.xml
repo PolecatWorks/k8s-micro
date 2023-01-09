@@ -9,6 +9,6 @@
         <module name="k8s-micro" />
       </profile>
     </annotationProcessing>
-    <bytecodeTargetLevel target="11" />
+    <bytecodeTargetLevel target="19" />
   </component>
 </project>

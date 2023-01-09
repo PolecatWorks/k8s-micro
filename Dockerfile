@@ -125,4 +125,5 @@ COPY --from=jre-build /javaruntime $JAVA_HOME
 RUN mkdir /opt/app
 COPY  --from=java-build /usr/src/app/target/k8s-micro-1.0-SNAPSHOT-jar-with-dependencies.jar /opt/app/k8s-micro.jar
 COPY --from=java-build /usr/src/app/modules.txt /opt/app/
+EXPOSE 8080/tcp
 CMD ["java", "-jar", "/opt/app/k8s-micro.jar"]

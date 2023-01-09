@@ -15,7 +15,7 @@ The objective is to provide:
 * [x] Monitoring (https://ktor.io/docs/micrometer-metrics.html#prometheus_endpoint)
 * [x] Extensible Monitoring (customer monitoring objects)
 * [x] Basic Monitoring (http system, JVM)
-* [ ] OpenAPI (https://ktor.io/docs/openapi.html)
+* [x] OpenAPI (https://ktor.io/docs/openapi.html)
 * [x] git good practices (pre-commit, etc)
 * [x] Modern JDK11
 * [x] JDK19
@@ -29,6 +29,7 @@ The objective is to provide:
   * [x] Structure of code/modules - Health separation from functional code
 * [ ] Multiarch Docker images
 * [ ] Capture pod id into service configs
+* [ ] Print routes on startup: https://github.com/ktorio/ktor/issues/1252#issuecomment-551304202
 
 
 # Approach

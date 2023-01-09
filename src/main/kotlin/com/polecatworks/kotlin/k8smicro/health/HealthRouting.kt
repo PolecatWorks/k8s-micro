@@ -1,17 +1,21 @@
 package com.polecatworks.kotlin.k8smicro.health
 
+import com.polecatworks.kotlin.k8smicro.app.AppService
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import kserialize
 import kotlin.time.ExperimentalTime
 import kotlin.time.TimeSource
 
 @OptIn(ExperimentalTime::class)
 fun Application.configureHealthRouting(
-    health: HealthSystem,
-    appMicrometerRegistry: PrometheusMeterRegistry,
     version: String,
+    appService: AppService,
+    appMicrometerRegistry: PrometheusMeterRegistry,
+    health: HealthSystem,
     healthService: HealthService
 ) {
     routing {
@@ -24,7 +28,6 @@ fun Application.configureHealthRouting(
                 call.respondText { "startup good" }
             }
             get("/stop") {
-                // TODO: Implement this using running. How to propagate to application service
                 healthService.stop()
                 call.respondText { "Shutdown initiated" }
             }
@@ -37,6 +40,7 @@ fun Application.configureHealthRouting(
                 call.application.environment.log.info("Ready check")
                 val now = TimeSource.Monotonic.markNow()
                 val myReady = health.checkReady(now)
+                call.response.status(if (myReady.valid) HttpStatusCode.OK else HttpStatusCode.TooManyRequests)
                 call.respond(myReady)
 //            call.respondText { "ready" }
             }
@@ -44,7 +48,11 @@ fun Application.configureHealthRouting(
                 call.application.environment.log.info("Alive check")
                 val now = TimeSource.Monotonic.markNow()
                 val myReady = health.checkAlive(now)
+                call.response.status(if (myReady.valid) HttpStatusCode.OK else HttpStatusCode.NotAcceptable)
                 call.respond(myReady)
+            }
+            get("/openapi") {
+                call.respond(appService.openAPIGen.api.kserialize())
             }
         }
     }

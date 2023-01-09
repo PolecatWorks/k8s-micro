@@ -27,6 +27,24 @@
     </properties>
 
     <dependencies>
+        <!-- https://ktor.io/docs/call-logging.html#install_plugin -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-server-call-logging-jvm</artifactId>
+            <version>${ktor_version}</version>
+            <exclusions>
+                <exclusion>
+                    <groupId>org.slf4j</groupId>
+                    <artifactId>slf4j-api</artifactId>
+                </exclusion>
+            </exclusions>
+        </dependency>
+        <!-- https://github.com/LukasForst/ktor-openapi-generator -->
+        <dependency>
+            <groupId>dev.forst</groupId>
+            <artifactId>ktor-openapi-generator</artifactId>
+            <version>0.5.4</version>
+        </dependency>
         <!--  https://mockk.io/      -->
         <dependency>
             <groupId>io.mockk</groupId>

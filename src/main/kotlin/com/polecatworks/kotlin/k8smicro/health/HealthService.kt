@@ -1,5 +1,6 @@
 package com.polecatworks.kotlin.k8smicro.health
 
+import com.polecatworks.kotlin.k8smicro.app.AppService
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
@@ -18,9 +19,10 @@ private val logger = KotlinLogging.logger {}
 
 class HealthService(
     val version: String,
+    private val appService: AppService,
+    private val metricsRegistry: PrometheusMeterRegistry,
     val health: HealthSystem,
-    val metricsRegistry: PrometheusMeterRegistry,
-    val port: Int = 8079
+    private val port: Int = 8079
 ) {
     private var running = AtomicBoolean(false)
     private val server = io.ktor.server.engine.embeddedServer(
@@ -36,7 +38,7 @@ class HealthService(
         }
         // Does not make sense to install metrics on health server unless we are concerned about its performance
 
-        configureHealthRouting(health, metricsRegistry, version, this@HealthService)
+        configureHealthRouting(version, appService, metricsRegistry, health, this@HealthService)
     }
 
     init {

@@ -1,5 +1,7 @@
 package com.polecatworks.kotlin.k8smicro.app
 
+import com.papsign.ktor.openapigen.OpenAPIGen
+import com.papsign.ktor.openapigen.openAPIGen
 import com.polecatworks.kotlin.k8smicro.K8sMicroConfig
 import com.polecatworks.kotlin.k8smicro.health.AliveMarginCheck
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
@@ -8,6 +10,7 @@ import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
 import io.ktor.server.metrics.micrometer.*
+import io.ktor.server.plugins.callloging.*
 import io.ktor.server.plugins.contentnegotiation.*
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.coroutineScope
@@ -38,6 +41,21 @@ class AppService(
         configure = {}
     ) {
         log.info("App Webservice: initialising")
+        install(CallLogging) {
+            // level = Level.INFO
+        }
+        install(OpenAPIGen) {
+            // serveOpenApiJson = true
+            info {
+                title = "k8s-minimal"
+                version = "0.0.0"
+                description = "K8s Micro API"
+                contact {
+                    name = "Ben Greene"
+                    email = "BenJGreene+polecatworks@gmail.com"
+                }
+            }
+        }
         install(ContentNegotiation) {
             json()
         }
@@ -46,6 +64,7 @@ class AppService(
         }
         configureAppRouting(this@AppService)
     }
+    val openAPIGen get() = this.server.application.openAPIGen
     val state = AppServiceState(
         AtomicInteger(0)
     )
