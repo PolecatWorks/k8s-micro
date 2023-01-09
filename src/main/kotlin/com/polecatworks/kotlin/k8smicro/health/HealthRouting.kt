@@ -1,6 +1,7 @@
 package com.polecatworks.kotlin.k8smicro.health
 
 import com.polecatworks.kotlin.k8smicro.app.AppService
+import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
@@ -39,6 +40,7 @@ fun Application.configureHealthRouting(
                 call.application.environment.log.info("Ready check")
                 val now = TimeSource.Monotonic.markNow()
                 val myReady = health.checkReady(now)
+                call.response.status(if (myReady.valid) HttpStatusCode.OK else HttpStatusCode.TooManyRequests)
                 call.respond(myReady)
 //            call.respondText { "ready" }
             }
@@ -46,6 +48,7 @@ fun Application.configureHealthRouting(
                 call.application.environment.log.info("Alive check")
                 val now = TimeSource.Monotonic.markNow()
                 val myReady = health.checkAlive(now)
+                call.response.status(if (myReady.valid) HttpStatusCode.OK else HttpStatusCode.NotAcceptable)
                 call.respond(myReady)
             }
             get("/openapi") {
