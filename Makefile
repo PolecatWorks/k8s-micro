@@ -78,3 +78,6 @@ port-forward:
 
 curl-check:
 	curl http://demo.localdev.me:8080/k8s-micro/v0/
+
+cleanbranches:
+	git branch --merged| egrep -v "(^\*|master|main|dev)" | xargs git branch -d
