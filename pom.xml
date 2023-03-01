@@ -5,7 +5,7 @@
 
     <groupId>com.polecatworks.kotlin.k8smicro</groupId>
     <artifactId>k8s-micro</artifactId>
-    <version>1.0-SNAPSHOT</version>
+    <version>${version}${changelist}${branchname}${sha}</version>
     <packaging>jar</packaging>
 
     <name>com.polecatworks.kotlin.k8smicro k8s-micro</name>
