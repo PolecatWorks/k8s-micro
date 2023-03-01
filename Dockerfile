@@ -25,8 +25,10 @@ COPY pom.xml ./
 RUN mvn -T 1C install && rm -rf target
 # copy other source files (keep in image)
 COPY src ./src/
-RUN mvn verify
-RUN jar --file=target/k8s-micro-1.0-SNAPSHOT-jar-with-dependencies.jar --describe-module > modules.txt
+ARG VERSION=1.0
+ARG CHANGELIST=-SNAPSHOT
+RUN mvn verify -Dversion=${VERSION} -Dchangelist=${CHANGELIST}
+RUN jar --file=target/k8s-micro-${VERSION}${CHANGELIST}-jar-with-dependencies.jar --describe-module > modules.txt
 
 
 FROM eclipse-temurin:${JAVA_VERSION} as jre-build
