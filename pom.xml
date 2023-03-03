@@ -5,18 +5,19 @@
 
     <groupId>com.polecatworks.kotlin.k8smicro</groupId>
     <artifactId>k8s-micro</artifactId>
-    <version>${version}${changelist}${branchname}${sha}</version>
+    <!--    <version>${version}${changelist}${branchname}${sha}</version>-->
+    <version>1.1.1</version>
     <packaging>jar</packaging>
 
     <name>com.polecatworks.kotlin.k8smicro k8s-micro</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kotlin.version>1.8.0-Beta</kotlin.version>
+        <kotlin.version>1.8.20-Beta</kotlin.version>
         <kotlin.code.style>official</kotlin.code.style>
 
         <junit.version>4.13.2</junit.version>
-        <ktor_version>2.2.1</ktor_version>
+        <ktor_version>2.2.4</ktor_version>
         <serialization.version>1.4.1</serialization.version>
         <logback.version>1.4.5</logback.version>
         <mockk.version>1.13.3</mockk.version>
@@ -115,6 +116,7 @@
             </exclusions>
 
         </dependency>
+        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-serialization-kotlinx-json-jvm -->
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-serialization-kotlinx-json-jvm</artifactId>
@@ -173,8 +175,41 @@
                     <artifactId>slf4j-api</artifactId>
                 </exclusion>
             </exclusions>
-
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-client-core-jvm -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-core-jvm</artifactId>
+            <version>${ktor_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-client-cio-jvm -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-cio-jvm</artifactId>
+            <version>${ktor_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-client-logging-jvm -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-logging-jvm</artifactId>
+            <version>${ktor_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-client-content-negotiation-jvm -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-content-negotiation-jvm</artifactId>
+            <version>${ktor_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-client-mock-jvm -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-mock-jvm</artifactId>
+            <version>${ktor_version}</version>
+        </dependency>
+
+
+
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-server-test-host-jvm</artifactId>
@@ -187,6 +222,8 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+
         <!-- https://mvnrepository.com/artifact/com.sksamuel.hoplite/hoplite-yaml -->
         <dependency>
             <groupId>com.sksamuel.hoplite</groupId>
@@ -199,6 +236,14 @@
             <groupId>com.sksamuel.hoplite</groupId>
             <artifactId>hoplite-core</artifactId>
             <version>2.7.0</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.github.avro-kotlin.avro4k/avro4k-core -->
+        <dependency>
+            <groupId>com.github.avro-kotlin.avro4k</groupId>
+            <artifactId>avro4k-core</artifactId>
+            <version>1.7.0</version>
+            <scope>runtime</scope>
         </dependency>
 
 

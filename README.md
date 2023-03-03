@@ -30,7 +30,8 @@ The objective is to provide:
 * [ ] Multiarch Docker images
 * [ ] Capture pod id into service configs
 * [ ] Print routes on startup: https://github.com/ktorio/ktor/issues/1252#issuecomment-551304202
-
+* [ ] Avro and Kafka : https://stefano-zanella.medium.com/publishing-avro-records-to-kafka-with-kotlin-avro4k-and-spring-boot-ba6be23bcba2
+*
 
 # Approach
 
