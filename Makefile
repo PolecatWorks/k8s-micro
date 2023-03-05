@@ -41,10 +41,14 @@ topics-delete:
 
 export JAVA_HOME = $(shell /usr/libexec/java_home -v 19.0.1)
 
-verify:
+mvnversion:
+	@echo "Setting version to $(VERSION)$(BRANCHNAME)$(SHA)$(CHANGELIST)"
+	@mvn versions:set -DnewVersion=$(VERSION)$(BRANCHNAME)$(SHA)$(CHANGELIST)
+
+verify: mvnversion
 	@mvn verify
 
-package:
+package: mvnversion
 	@mvn package ${MAVEN_ARGS}
 
 run: MAVEN_ARGS=-DskipTests -Dversion=$(VERSION) -Dbranchname=$(BRANCHNAME) -Dsha=$(SHA) -Dchangelist=$(CHANGELIST)

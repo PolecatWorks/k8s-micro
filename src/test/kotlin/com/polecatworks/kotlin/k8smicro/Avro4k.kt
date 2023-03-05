@@ -2,6 +2,7 @@ package com.polecatworks.kotlin.k8smicro
 
 import com.github.avrokotlin.avro4k.Avro
 import com.github.avrokotlin.avro4k.serializer.LocalDateSerializer
+import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import io.ktor.client.engine.cio.*
 import io.ktor.client.engine.mock.*
 import io.ktor.http.*
@@ -12,7 +13,9 @@ import org.junit.Test
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.time.LocalDate
+import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.test.assertEquals
+import kotlin.time.Duration.Companion.seconds
 
 class Avro4k {
 
@@ -66,7 +69,9 @@ class Avro4k {
          *
          */
 
-        val schemaServer = KafkaSchemaRegistryApi(CIO.create(), KafkaSchemaRegistryConfig("http://localhost:8082"))
+        val running = AtomicBoolean()
+        val health = HealthSystem()
+        val schemaServer = KafkaSchemaRegistryApi(KafkaSchemaRegistryConfig("http://localhost:8082", 60.seconds), CIO.create(), health, running)
 
         val reply = schemaServer.checkConnection()
 
@@ -84,23 +89,17 @@ class Avro4k {
          *
          */
 
-        runBlocking {
-            val mockEngine = MockEngine { request ->
-                respond(
-                    content = ByteReadChannel("""{"ip":"127.0.0.1"}"""),
-                    status = HttpStatusCode.OK,
-                    headers = headersOf(HttpHeaders.ContentType, "application/json")
-                )
-            }
-            val apiClient = KafkaSchemaRegistryApi(mockEngine, KafkaSchemaRegistryConfig("http://localhost:8082"))
-
-            assertEquals("127.0.0.1", apiClient.checkConnection())
+        val mockEngine = MockEngine { request ->
+            respond(
+                content = ByteReadChannel("""{"compatibilityLevel": "FULL"}"""),
+                status = HttpStatusCode.OK,
+                headers = headersOf(HttpHeaders.ContentType, "application/json")
+            )
         }
+        val running = AtomicBoolean()
+        val health = HealthSystem()
+        val apiClient = KafkaSchemaRegistryApi(KafkaSchemaRegistryConfig("http://localhost:8082", 60.seconds), mockEngine, health, running)
 
-        val schemaServer = KafkaSchemaRegistryApi(CIO.create(), KafkaSchemaRegistryConfig("http://localhost:8082"))
-
-        val reply = schemaServer.checkConnection()
-
-        println("created $reply")
+        assertEquals(true, apiClient.checkConnection())
     }
 }
