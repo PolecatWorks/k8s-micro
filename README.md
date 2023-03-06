@@ -1,5 +1,11 @@
 # k8s-micro
 
+Create a tiny kotlin service to create IoT messages via kafka and process them calculcate on the fly data.
+This service needs to be small to allow it to be run on edge nodes which are typically
+small with minimal memory and CPU footprint.
+
+Target System footprint for edge nodes: 200M image and 200M memory.
+
 
 
 This is a small container and helm chart to provide a basic microservice with trimmings.
