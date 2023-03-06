@@ -12,7 +12,8 @@ SCHEMA_REGISTRY_START:=$(CONFLUENT_HOME)/bin/schema-registry-start
 ZOOKEEPER_SERVER_START:=$(CONFLUENT_HOME)/bin/zookeeper-server-start
 KAFKA_SERVER_START:=$(CONFLUENT_HOME)/bin/kafka-server-start
 KAFKA_TOPICS:=$(CONFLUENT_HOME)/bin/kafka-topics
-
+KAFKA_PRODUCER:=$(CONFLUENT_HOME)/bin/kafka-console-producer
+KAFKA_CONSUMER:=$(CONFLUENT_HOME)/bin/kafka-console-consumer
 
 start-zookeeper:
 	$(ZOOKEEPER_SERVER_START) $(CONFLUENT_HOME)/etc/kafka/zookeeper.properties
@@ -37,6 +38,11 @@ topics-delete:
 	$(KAFKA_TOPICS) --bootstrap-server $(KAFKA_BOOTSTRAP) --delete --topic "input"
 	$(KAFKA_TOPICS) --bootstrap-server $(KAFKA_BOOTSTRAP) --delete --topic "output"
 
+topic-input-write:
+	echo a:bcdef | $(KAFKA_PRODUCER) --topic input --bootstrap-server $(KAFKA_BOOTSTRAP) --property parse.key=true --property key.separator=":"
+
+topic-input-read:
+	@$(KAFKA_CONSUMER) --bootstrap-server localhost:9092 --topic input --from-beginning --property print.key=true --property key.separator=":"
 
 
 export JAVA_HOME = $(shell /usr/libexec/java_home -v 19.0.1)
@@ -54,6 +60,10 @@ package: mvnversion
 run: MAVEN_ARGS=-DskipTests -Dversion=$(VERSION) -Dbranchname=$(BRANCHNAME) -Dsha=$(SHA) -Dchangelist=$(CHANGELIST)
 run: package
 	@java -jar  target/k8s-micro-$(VERSION)$(CHANGELIST)-jar-with-dependencies.jar
+
+check-alive:
+	@curl http://localhost:8079/hams/alive
+
 
 docker-java-build:
 	docker build --target java-build -t ${IMAGE_NAME}-java-build .

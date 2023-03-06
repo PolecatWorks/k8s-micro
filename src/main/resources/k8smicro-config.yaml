@@ -8,8 +8,8 @@ app:
   threadSleep: 1s
 kafkaProcessorConfig:
   hostUrl: http://localhost:9092
-  readTopic: red
-  writeTopic: green
+  readTopic: input
+  writeTopic: output
   schemaRegistry:
       hostUrl: http://localhost:8081
       checkDuration: 60s

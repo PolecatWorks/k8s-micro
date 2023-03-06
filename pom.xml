@@ -18,6 +18,7 @@
 
         <junit.version>4.13.2</junit.version>
         <ktor_version>2.2.4</ktor_version>
+        <kafka_version>3.4.0</kafka_version>
         <serialization.version>1.4.1</serialization.version>
         <logback.version>1.4.5</logback.version>
         <mockk.version>1.13.3</mockk.version>
@@ -206,6 +207,18 @@
             <groupId>io.ktor</groupId>
             <artifactId>ktor-client-mock-jvm</artifactId>
             <version>${ktor_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients -->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>${kafka_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka-streams -->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-streams</artifactId>
+            <version>${kafka_version}</version>
         </dependency>
 
 
