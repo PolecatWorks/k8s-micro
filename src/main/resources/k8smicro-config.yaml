@@ -6,10 +6,15 @@ randomThread:
   sleepTime: 1s
 app:
   threadSleep: 1s
-kafkaProcessorConfig:
+kafkaProcessor:
   hostUrl: http://localhost:9092
   readTopic: input
   writeTopic: output
   schemaRegistry:
       hostUrl: http://localhost:8081
       checkDuration: 60s
+sqlServer:
+  jdbcUrl: jdbc:postgresql://localhost:5432/mydatabase
+  driver: org.postgresql.Driver
+  healthSleep: 60s
+  threadSleep: 5s

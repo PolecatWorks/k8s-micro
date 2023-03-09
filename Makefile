@@ -15,6 +15,12 @@ KAFKA_TOPICS:=$(CONFLUENT_HOME)/bin/kafka-topics
 KAFKA_PRODUCER:=$(CONFLUENT_HOME)/bin/kafka-console-producer
 KAFKA_CONSUMER:=$(CONFLUENT_HOME)/bin/kafka-console-consumer
 
+start-postgres:
+	@brew services run postgresql@15
+	# DB created wtih https://www.postgresql.org/docs/15/app-initdb.html
+stop-postgres:
+	@brew services stop postgresql@15
+
 start-zookeeper:
 	$(ZOOKEEPER_SERVER_START) $(CONFLUENT_HOME)/etc/kafka/zookeeper.properties
 
@@ -45,7 +51,8 @@ topic-input-read:
 	@$(KAFKA_CONSUMER) --bootstrap-server localhost:9092 --topic input --from-beginning --property print.key=true --property key.separator=":"
 
 
-export JAVA_HOME = $(shell /usr/libexec/java_home -v 19.0.1)
+
+export JAVA_HOME = $(shell /usr/libexec/java_home -v 19.0.2)
 
 mvnversion:
 	@echo "Setting version to $(VERSION)$(BRANCHNAME)$(SHA)$(CHANGELIST)"

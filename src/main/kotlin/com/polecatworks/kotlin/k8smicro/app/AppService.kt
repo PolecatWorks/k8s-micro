@@ -4,6 +4,7 @@ import com.papsign.ktor.openapigen.OpenAPIGen
 import com.papsign.ktor.openapigen.openAPIGen
 import com.polecatworks.kotlin.k8smicro.K8sMicroConfig
 import com.polecatworks.kotlin.k8smicro.KafkaProcessor
+import com.polecatworks.kotlin.k8smicro.SqlServer
 import com.polecatworks.kotlin.k8smicro.health.AliveMarginCheck
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import com.polecatworks.kotlin.k8smicro.health.ReadyStateCheck
@@ -18,6 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
+import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import io.ktor.client.engine.cio.CIO as CIO_CLIENT
@@ -32,7 +34,8 @@ data class AppServiceState(
 class AppService(
     private val health: HealthSystem,
     private val metricsRegistry: PrometheusMeterRegistry,
-    val config: K8sMicroConfig
+    val config: K8sMicroConfig,
+    val secretDir: Path
 ) {
 
     private val running = AtomicBoolean(false)
@@ -74,7 +77,8 @@ class AppService(
         logger.info { "App Service: Init complete" }
     }
 
-    private val kafkaProcessor = KafkaProcessor(config.kafkaProcessorConfig, health, CIO_CLIENT.create(), running)
+    private val kafkaProcessor = KafkaProcessor(config.kafkaProcessor, health, CIO_CLIENT.create(), running)
+    private val sqlServer = SqlServer(config.sqlServer, secretDir, health, running)
 
     private suspend fun startCoroutines() = coroutineScope {
         running.set(true)
@@ -85,6 +89,7 @@ class AppService(
         }
 
         launch { kafkaProcessor.start() }
+        launch { sqlServer.start() }
 
         val myAlive = AliveMarginCheck("App coroutine", config.app.threadSleep * 3) // Limit as 3x of sleep
         val myReady = ReadyStateCheck("App coroutine")

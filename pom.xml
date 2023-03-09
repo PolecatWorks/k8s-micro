@@ -22,6 +22,7 @@
         <serialization.version>1.4.1</serialization.version>
         <logback.version>1.4.5</logback.version>
         <mockk.version>1.13.3</mockk.version>
+        <exposed_version>0.41.1</exposed_version>
         <prometheus_version>1.10.2</prometheus_version>
         <java.version>19</java.version>
         <kotlin.compiler.jvmTarget>19</kotlin.compiler.jvmTarget>
@@ -221,7 +222,35 @@
             <version>${kafka_version}</version>
         </dependency>
 
+        <!-- https://mvnrepository.com/artifact/org.ktorm/ktorm-core -->
+<!--        <dependency>-->
+<!--            <groupId>org.ktorm</groupId>-->
+<!--            <artifactId>ktorm-core</artifactId>-->
+<!--            <version>3.6.0</version>-->
+<!--        </dependency>-->
 
+        <!-- https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-core -->
+        <dependency>
+            <groupId>org.jetbrains.exposed</groupId>
+            <artifactId>exposed-core</artifactId>
+            <version>${exposed_version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.exposed</groupId>
+            <artifactId>exposed-dao</artifactId>
+            <version>${exposed_version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.exposed</groupId>
+            <artifactId>exposed-jdbc</artifactId>
+            <version>${exposed_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.5.4</version>
+        </dependency>
 
         <dependency>
             <groupId>io.ktor</groupId>
