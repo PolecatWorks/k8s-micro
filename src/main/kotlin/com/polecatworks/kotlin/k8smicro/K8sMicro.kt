@@ -6,6 +6,7 @@ import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import mu.KotlinLogging
+import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 import kotlin.time.Duration.Companion.milliseconds
@@ -18,12 +19,13 @@ private val logger = KotlinLogging.logger {}
  */
 class K8sMicro(
     val version: String,
-    private val config: K8sMicroConfig
+    private val config: K8sMicroConfig,
+    private val secretDir: Path
 ) {
     private val metricsRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
     private val healthSystem = HealthSystem()
-    private val appService = AppService(healthSystem, metricsRegistry, config)
+    private val appService = AppService(healthSystem, metricsRegistry, config, secretDir)
     private val healthService = HealthService(version, appService, metricsRegistry, healthSystem, 8079)
     private var running = AtomicBoolean(false)
     private val shutdownHook = thread(start = false) {

@@ -53,7 +53,7 @@ class HealthService(
             running.set(false) // If we got here then definitely set running to false
         }
         val threadSleep = 100.milliseconds
-        val myAlive = AliveMarginCheck("Health coroutine", threadSleep * 3) // Limit as 3x of sleep
+        val myAlive = AliveMarginCheck("Health", threadSleep * 3) // Limit as 3x of sleep
         health.registerAlive(myAlive)
         launch {
             while (running.get()) {

@@ -43,7 +43,7 @@ fun Application.configureAppRouting(appService: AppService) {
                 log.info("Hello from /api/v1")
                 respond(StringResponse("params.a"))
             }
-            route("/").get<Unit, StringResponse> { params ->
+            route("/").get<Unit, StringResponse> { _params ->
                 log.info("Hello from /api/v1/")
                 respond(StringResponse("params.a"))
             }

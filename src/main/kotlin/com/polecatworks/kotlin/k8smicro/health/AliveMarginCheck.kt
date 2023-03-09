@@ -13,18 +13,25 @@ data class HealthCheckResult(val name: String, val valid: Boolean)
 @OptIn(ExperimentalTime::class)
 interface IHealthCheck {
     val name: String
-    fun check(time: ValueTimeMark): HealthCheckResult
+    abstract fun checkValid(time: ValueTimeMark): Boolean
+    fun check(time: ValueTimeMark): HealthCheckResult {
+        return HealthCheckResult(name, checkValid(time))
+    }
 }
 
 @OptIn(ExperimentalTime::class)
-class AliveMarginCheck(override val name: String, val margin: Duration) : IHealthCheck {
-    var latest = markNow()
+class AliveMarginCheck(override val name: String, val margin: Duration, default: Boolean = true) : IHealthCheck {
+    var latest = if (default) markNow() else markNow() - margin
 
     fun kick() {
         latest = markNow()
     }
-    override fun check(time: ValueTimeMark): HealthCheckResult {
-        return HealthCheckResult(name, latest.plus(margin) >= time)
+
+//    override fun check(time: ValueTimeMark): HealthCheckResult {
+//        return HealthCheckResult(name, checkValid(time))
+//    }
+    override fun checkValid(time: ValueTimeMark): Boolean {
+        return latest.plus(margin) >= time
     }
 }
 
@@ -45,8 +52,12 @@ class ReadyStateCheck(override val name: String) : IHealthCheck {
         return !state.getAndSet(true)
     }
 
-    @OptIn(ExperimentalTime::class)
-    override fun check(time: ValueTimeMark): HealthCheckResult {
-        return HealthCheckResult(name, state.get())
+//    override fun check(time: ValueTimeMark): HealthCheckResult {
+//        return HealthCheckResult(name, state.get())
+//    }
+
+    @ExperimentalTime
+    override fun checkValid(time: ValueTimeMark): Boolean {
+        TODO("Not yet implemented")
     }
 }
