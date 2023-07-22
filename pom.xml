@@ -13,11 +13,11 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kotlin.version>1.8.20-Beta</kotlin.version>
+        <kotlin.version>1.9.0</kotlin.version>
         <kotlin.code.style>official</kotlin.code.style>
 
         <junit.version>4.13.2</junit.version>
-        <ktor_version>2.2.4</ktor_version>
+        <ktor_version>2.3.2</ktor_version>
         <kafka_version>3.4.0</kafka_version>
         <serialization.version>1.4.1</serialization.version>
         <logback.version>1.4.5</logback.version>
@@ -28,6 +28,13 @@
         <kotlin.compiler.jvmTarget>19</kotlin.compiler.jvmTarget>
         <main.class>com.polecatworks.kotlin.k8smicro.K8sMicroCliKt</main.class>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>confluent</id>
+            <url>https://packages.confluent.io/maven/</url>
+        </repository>
+    </repositories>
 
     <dependencies>
         <!-- https://ktor.io/docs/call-logging.html#install_plugin -->
@@ -221,7 +228,12 @@
             <artifactId>kafka-streams</artifactId>
             <version>${kafka_version}</version>
         </dependency>
-
+        <!-- https://mvnrepository.com/artifact/io.confluent/kafka-streams-avro-serde -->
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-streams-avro-serde</artifactId>
+            <version>7.4.0</version>
+        </dependency>
         <!-- https://mvnrepository.com/artifact/org.ktorm/ktorm-core -->
 <!--        <dependency>-->
 <!--            <groupId>org.ktorm</groupId>-->
@@ -284,7 +296,7 @@
         <dependency>
             <groupId>com.github.avro-kotlin.avro4k</groupId>
             <artifactId>avro4k-core</artifactId>
-            <version>1.7.0</version>
+            <version>1.8.0</version>
         </dependency>
 
 

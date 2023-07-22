@@ -89,7 +89,7 @@ class AppService(
         }
 
         launch { kafkaProcessor.start() }
-        launch { sqlServer.start() }
+//        launch { sqlServer.start() }
 
         val myAlive = AliveMarginCheck("App coroutine", config.app.threadSleep * 3) // Limit as 3x of sleep
         val myReady = ReadyStateCheck("App coroutine")

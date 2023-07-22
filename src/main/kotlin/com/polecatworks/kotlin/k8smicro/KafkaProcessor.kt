@@ -2,13 +2,18 @@ package com.polecatworks.kotlin.k8smicro
 
 import com.github.avrokotlin.avro4k.Avro
 import com.github.avrokotlin.avro4k.AvroNamespace
+import com.github.avrokotlin.avro4k.io.AvroEncodeFormat
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
+import io.confluent.kafka.streams.serdes.avro.GenericAvroSerde
 import io.ktor.client.engine.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
+import org.apache.avro.generic.GenericRecord
+import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.common.serialization.Serdes.Long
 import org.apache.kafka.streams.KafkaStreams
@@ -20,6 +25,7 @@ import org.apache.kafka.streams.kstream.Grouped
 import org.apache.kafka.streams.kstream.Printed
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
+import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 import kotlin.time.Duration
@@ -51,8 +57,8 @@ pub(crate) struct Chaser {
 data class Chaser(
     val name: String,
     val id: String,
-    val send: Long,
-    val ttl: Int,
+    val sent: Long,
+    val ttl: Long,
     val previous: Long?
 )
 
@@ -80,21 +86,49 @@ class KafkaProcessor(
                 delay(config.querySleep)
             }
         }
+        val myChaser = Chaser("ABCNAME", "ID1", 12, 22, previous = null)
+//        val abc = AvroSerializer.serialize(encoder, myChaser)
+        val baos = ByteArrayOutputStream()
+        Avro.default.openOutputStream(Chaser.serializer()) {
+            encodeFormat = AvroEncodeFormat.Binary
+        }.to(baos).write(myChaser).close()
+
+        val baosString = baos.toString()
+        logger.info("Looking at output = $baosString of length ${baosString.length}")
+
+//        val ben2 = Chaser.serializer()
+//        logger.info("Serializer = $ben2")
+        val ben = Avro.default.toRecord(Chaser.serializer(), myChaser)
+//        val ben2 = ben.
+        logger.info("Chaser = $ben")
+
         logger.info("Chaser Schema registered for topic ${config.readTopic} with id: $chaserId")
 
         val builder = StreamsBuilder()
 
         logger.info("Reading from input topic ${config.readTopic}")
+
+        val genericAvroSerde: Serde<GenericRecord> = GenericAvroSerde()
+        genericAvroSerde.configure(
+            mapOf(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to schemaRegistryApi.schemaRegistryUrl),
+            /*isKey*/ false
+        )
+
         val records = builder
-            .stream(config.readTopic, Consumed.with(Serdes.String(), Serdes.String()))
-//            .print(Printed.toSysOut<String, String>().withLabel("input-stream"))
+            .stream(config.readTopic, Consumed.with(Serdes.String(), genericAvroSerde))
+        // .print(Printed.toSysOut<String, String>().withLabel("input-stream"))
         // See here for custom serdes: https://github.com/confluentinc/examples/blob/7.3.2-post/clients/cloud/kotlin/src/main/kotlin/io/confluent/examples/clients/cloud/StreamsExample.kt
 
         val counts = records.map { k, v ->
-            println("OKLY DOKLEY $k, $v")
-            KeyValue(k, v.length.toLong())
+//            println("OKLY DOKLEY $k, $v")
+            val name = v.get("name").toString()
+//            println("Got id = $name")
+//            AvroSerializer<Chaser>.decodeAvroValue()
+
+            KeyValue(name, 1L)
+//            KeyValue(k, v.length.toLong())
         }
-        counts.print(Printed.toSysOut<String, Long>().withLabel("Consumed record"))
+//        counts.print(Printed.toSysOut<String, Long>().withLabel("Consumed record"))
         val countAgg = counts
             .groupByKey(Grouped.with(Serdes.String(), Long()))
             .reduce { aggValue, newValue -> aggValue!! + newValue!! }

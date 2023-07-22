@@ -6,7 +6,7 @@ small with minimal memory and CPU footprint.
 
 Target System footprint for edge nodes: 200M image and 200M memory.
 
-
+https://github.com/papsign/Ktor-OpenAPI-Generator
 
 This is a small container and helm chart to provide a basic microservice with trimmings.
 

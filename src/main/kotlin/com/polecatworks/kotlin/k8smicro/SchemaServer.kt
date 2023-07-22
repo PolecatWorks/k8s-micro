@@ -67,7 +67,7 @@ class KafkaSchemaRegistryApi(
         }
     }
 
-    private val schemaRegistryUrl = config.hostUrl
+    val schemaRegistryUrl = config.hostUrl
 
     @OptIn(ExperimentalTime::class)
     suspend fun start() = coroutineScope {
