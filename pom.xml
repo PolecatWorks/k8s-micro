@@ -298,6 +298,12 @@
             <artifactId>avro4k-core</artifactId>
             <version>1.8.0</version>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.github.thake.avro4k/avro4k-kafka-serializer -->
+        <dependency>
+            <groupId>com.github.thake.avro4k</groupId>
+            <artifactId>avro4k-kafka-serializer</artifactId>
+            <version>0.14.0</version>
+        </dependency>
 
 
     </dependencies>
