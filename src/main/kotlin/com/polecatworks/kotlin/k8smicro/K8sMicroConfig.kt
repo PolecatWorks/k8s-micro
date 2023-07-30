@@ -21,5 +21,7 @@ data class K8sMicroConfig(
     val env: String,
     val webserver: WebServer,
     val randomThread: RandomThread,
-    val app: K8sMicroApp
+    val app: K8sMicroApp,
+    val kafkaProcessor: KafkaProcessorConfig,
+    val sqlServer: SqlServerConfig
 )

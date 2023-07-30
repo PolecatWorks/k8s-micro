@@ -5,26 +5,36 @@
 
     <groupId>com.polecatworks.kotlin.k8smicro</groupId>
     <artifactId>k8s-micro</artifactId>
-    <version>${version}${changelist}${branchname}${sha}</version>
+<!--    <version>${version}${changelist}${branchname}${sha}</version>-->
+    <version>2.0.0-SNAPSHOT</version>
     <packaging>jar</packaging>
 
     <name>com.polecatworks.kotlin.k8smicro k8s-micro</name>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kotlin.version>1.8.0-Beta</kotlin.version>
+        <kotlin.version>1.9.0</kotlin.version>
         <kotlin.code.style>official</kotlin.code.style>
 
         <junit.version>4.13.2</junit.version>
-        <ktor_version>2.2.1</ktor_version>
+        <ktor_version>2.3.2</ktor_version>
+        <kafka_version>3.4.0</kafka_version>
         <serialization.version>1.4.1</serialization.version>
         <logback.version>1.4.5</logback.version>
         <mockk.version>1.13.3</mockk.version>
+        <exposed_version>0.41.1</exposed_version>
         <prometheus_version>1.10.2</prometheus_version>
         <java.version>19</java.version>
         <kotlin.compiler.jvmTarget>19</kotlin.compiler.jvmTarget>
         <main.class>com.polecatworks.kotlin.k8smicro.K8sMicroCliKt</main.class>
     </properties>
+
+    <repositories>
+        <repository>
+            <id>confluent</id>
+            <url>https://packages.confluent.io/maven/</url>
+        </repository>
+    </repositories>
 
     <dependencies>
         <!-- https://ktor.io/docs/call-logging.html#install_plugin -->
@@ -115,6 +125,7 @@
             </exclusions>
 
         </dependency>
+        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-serialization-kotlinx-json-jvm -->
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-serialization-kotlinx-json-jvm</artifactId>
@@ -173,8 +184,86 @@
                     <artifactId>slf4j-api</artifactId>
                 </exclusion>
             </exclusions>
-
         </dependency>
+
+        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-client-core-jvm -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-core-jvm</artifactId>
+            <version>${ktor_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-client-cio-jvm -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-cio-jvm</artifactId>
+            <version>${ktor_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-client-logging-jvm -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-logging-jvm</artifactId>
+            <version>${ktor_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-client-content-negotiation-jvm -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-content-negotiation-jvm</artifactId>
+            <version>${ktor_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.ktor/ktor-client-mock-jvm -->
+        <dependency>
+            <groupId>io.ktor</groupId>
+            <artifactId>ktor-client-mock-jvm</artifactId>
+            <version>${ktor_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka-clients -->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-clients</artifactId>
+            <version>${kafka_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.apache.kafka/kafka-streams -->
+        <dependency>
+            <groupId>org.apache.kafka</groupId>
+            <artifactId>kafka-streams</artifactId>
+            <version>${kafka_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/io.confluent/kafka-streams-avro-serde -->
+        <dependency>
+            <groupId>io.confluent</groupId>
+            <artifactId>kafka-streams-avro-serde</artifactId>
+            <version>7.4.0</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.ktorm/ktorm-core -->
+<!--        <dependency>-->
+<!--            <groupId>org.ktorm</groupId>-->
+<!--            <artifactId>ktorm-core</artifactId>-->
+<!--            <version>3.6.0</version>-->
+<!--        </dependency>-->
+
+        <!-- https://mvnrepository.com/artifact/org.jetbrains.exposed/exposed-core -->
+        <dependency>
+            <groupId>org.jetbrains.exposed</groupId>
+            <artifactId>exposed-core</artifactId>
+            <version>${exposed_version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.exposed</groupId>
+            <artifactId>exposed-dao</artifactId>
+            <version>${exposed_version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.jetbrains.exposed</groupId>
+            <artifactId>exposed-jdbc</artifactId>
+            <version>${exposed_version}</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.postgresql/postgresql -->
+        <dependency>
+            <groupId>org.postgresql</groupId>
+            <artifactId>postgresql</artifactId>
+            <version>42.5.4</version>
+        </dependency>
+
         <dependency>
             <groupId>io.ktor</groupId>
             <artifactId>ktor-server-test-host-jvm</artifactId>
@@ -187,6 +276,8 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
+
         <!-- https://mvnrepository.com/artifact/com.sksamuel.hoplite/hoplite-yaml -->
         <dependency>
             <groupId>com.sksamuel.hoplite</groupId>
@@ -199,6 +290,19 @@
             <groupId>com.sksamuel.hoplite</groupId>
             <artifactId>hoplite-core</artifactId>
             <version>2.7.0</version>
+        </dependency>
+
+        <!-- https://mvnrepository.com/artifact/com.github.avro-kotlin.avro4k/avro4k-core -->
+        <dependency>
+            <groupId>com.github.avro-kotlin.avro4k</groupId>
+            <artifactId>avro4k-core</artifactId>
+            <version>1.8.0</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/com.github.thake.avro4k/avro4k-kafka-serializer -->
+        <dependency>
+            <groupId>com.github.thake.avro4k</groupId>
+            <artifactId>avro4k-kafka-serializer</artifactId>
+            <version>0.14.0</version>
         </dependency>
 
 

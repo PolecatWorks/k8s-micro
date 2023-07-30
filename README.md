@@ -1,6 +1,12 @@
 # k8s-micro
 
+Create a tiny kotlin service to create IoT messages via kafka and process them calculcate on the fly data.
+This service needs to be small to allow it to be run on edge nodes which are typically
+small with minimal memory and CPU footprint.
 
+Target System footprint for edge nodes: 200M image and 200M memory.
+
+https://github.com/papsign/Ktor-OpenAPI-Generator
 
 This is a small container and helm chart to provide a basic microservice with trimmings.
 
@@ -30,7 +36,10 @@ The objective is to provide:
 * [ ] Multiarch Docker images
 * [ ] Capture pod id into service configs
 * [ ] Print routes on startup: https://github.com/ktorio/ktor/issues/1252#issuecomment-551304202
-
+* [ ] Avro and Kafka : https://stefano-zanella.medium.com/publishing-avro-records-to-kafka-with-kotlin-avro4k-and-spring-boot-ba6be23bcba2
+* [ ] Useful reference for kafka and Avro4k : https://github.com/thake/avro4k-kafka-serializer/blob/main/src/main/kotlin/com/github/thake/kafka/avro4k/serializer/AbstractKafkaAvro4kSerDe.kt
+*
+*
 
 # Approach
 
