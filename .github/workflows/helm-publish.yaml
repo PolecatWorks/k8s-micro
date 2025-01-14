@@ -1,0 +1,64 @@
+name: Helm
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+on:
+  push:
+    branches: [ "main" ]
+    # Publish semver tags as releases.
+    tags: [ 'v*.*.*' ]
+    paths:
+      - 'chart/**'
+  # pull_request:
+  #   branches: [ "main" ]
+
+env:
+  # Use docker.io for Docker Hub if empty
+  REGISTRY: ghcr.io
+  # github.repository as <account>/<repo>
+  IMAGE_NAME: ${{ github.repository }}
+
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+      # This is used to complete the identity challenge
+      # with sigstore/fulcio when running outside of PRs.
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - id: lower-repo
+        name: Repository to lowercase
+        run: |
+          SHORTER_REPO=${GITHUB_REPOSITORY%:*}
+          echo "repository=${SHORTER_REPO@L}" >> $GITHUB_OUTPUT
+
+      - name: Push Helm chart to OCI compatible registry (Github)
+        uses: bsord/helm-push@v4.1.0
+        with:
+          chart-folder: chart/k8s-python
+          useOCIRegistry: true
+          # registry-url:  oci://ghcr.io/${{ github.repository }}-helm
+          registry-url:  oci://ghcr.io/${{ steps.lower-repo.outputs.repository }}/helm
+          username: ${{ github.actor }}
+          access-token: ${{ secrets.GITHUB_TOKEN }}
+          force: true
+
+      # - name: Helm Publish Action
+      #   uses: huggingface/helm-publish-action@latest
+      #   with:
+      #     workingDirectory: charts
+      #     repository: oci://ghcr.io/${{ github.repository }}
+      #     username: ${{ github.actor }}
+      #     password: ${{ secrets.GITHUB_TOKEN }}
+      #     beforeHook: cd subcharts/my-sub-chart && helm dependencies update
