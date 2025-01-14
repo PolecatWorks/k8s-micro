@@ -46,7 +46,7 @@ jobs:
       - name: Push Helm chart to OCI compatible registry (Github)
         uses: bsord/helm-push@v4.1.0
         with:
-          chart-folder: chart/k8s-python
+          chart-folder: chart/k8s-micro
           useOCIRegistry: true
           # registry-url:  oci://ghcr.io/${{ github.repository }}-helm
           registry-url:  oci://ghcr.io/${{ steps.lower-repo.outputs.repository }}/helm
