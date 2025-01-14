@@ -3,7 +3,6 @@
 
 env: {}
 
-
 replicaCount: 1
 
 health:
