@@ -20,7 +20,7 @@
         <ktor_version>2.3.2</ktor_version>
         <kafka_version>3.4.0</kafka_version>
         <serialization.version>1.4.1</serialization.version>
-        <logback.version>1.4.5</logback.version>
+        <logback.version>1.4.12</logback.version>
         <mockk.version>1.13.3</mockk.version>
         <exposed_version>0.41.1</exposed_version>
         <prometheus_version>1.10.2</prometheus_version>
