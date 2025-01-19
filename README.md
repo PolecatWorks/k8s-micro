@@ -38,7 +38,7 @@ The objective is to provide:
 * [ ] Print routes on startup: https://github.com/ktorio/ktor/issues/1252#issuecomment-551304202
 * [ ] Avro and Kafka : https://stefano-zanella.medium.com/publishing-avro-records-to-kafka-with-kotlin-avro4k-and-spring-boot-ba6be23bcba2
 * [ ] Useful reference for kafka and Avro4k : https://github.com/thake/avro4k-kafka-serializer/blob/main/src/main/kotlin/com/github/thake/kafka/avro4k/serializer/AbstractKafkaAvro4kSerDe.kt
-*
+* [ ] PreProcessor for Hoplite to read K8s Secrets from files
 *
 
 # Approach

@@ -21,11 +21,18 @@ import kotlin.time.TimeSource
 
 private val logger = KotlinLogging.logger {}
 
+
+data class SqlServerDatabase(
+    val url: String,
+    val username: String,
+    val password: String,
+)
+
 data class SqlServerConfig(
-    val jdbcUrl: String,
+    val database: SqlServerDatabase,
     val driver: String,
     val healthSleep: Duration,
-    val threadSleep: Duration
+    val threadSleep: Duration,
 ) {
     init {
         check(healthSleep > threadSleep * 2) { "healthSleep($healthSleep) must be greater than 2*threadSleep($threadSleep)" }
@@ -34,23 +41,11 @@ data class SqlServerConfig(
     }
 }
 
-data class SqlServerSecret(
-    val username: String,
-    val password: String
-)
 class SqlServer(
     private val config: SqlServerConfig,
-    private val secretDir: Path,
     val health: HealthSystem,
     val running: AtomicBoolean
 ) {
-    val secret: SqlServerSecret
-    init {
-        val configBuilder = ConfigLoaderBuilder.default()
-        configBuilder.addFileSource(secretDir.resolve("database.yaml").toFile())
-        secret = configBuilder.build().loadConfigOrThrow()
-    }
-
     val database = Database
 
     @OptIn(ExperimentalTime::class)
@@ -60,14 +55,13 @@ class SqlServer(
         health.registerAlive(myAlive)
 
         database.connect(
-            url = config.jdbcUrl,
+            url = config.database.url,
             driver = config.driver,
-            user = secret.username,
-            password = secret.password
-        ) // Does not actuall connect. Just stores the connection info
+            user = config.database.username,
+            password = config.database.password
+        ) // Does not actually connect. Just stores the connection info
 
         launch {
-            //
             var checkinTime = TimeSource.Monotonic.markNow() // Start out immediately
             while (running.get()) {
                 val timeNow = TimeSource.Monotonic.markNow()

@@ -1,3 +1,4 @@
+---
 env: hello
 webserver:
   port: 8080
@@ -14,10 +15,7 @@ kafkaProcessor:
       hostUrl: http://localhost:8081
       checkDuration: 60s
 sqlServer:
-  database:
-    url:  jdbc:postgresql://localhost:5432/mydatabase
-    username: theboss
-    password: ${secret_pw}
+  jdbcUrl: jdbc:postgresql://localhost:5432/mydatabase
   driver: org.postgresql.Driver
   healthSleep: 60s
   threadSleep: 5s

@@ -1,0 +1,7 @@
+---
+image:
+  pullPolicy: Always
+  repository: ghcr.io/polecatworks/k8s-micro
+  tag: main
+imagePullSecrets:
+- name: dockerconfigjson-ghcr-io

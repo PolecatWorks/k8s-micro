@@ -57,6 +57,24 @@ app.kubernetes.io/name: {{ include "k8s-micro.name" . }}
 app.kubernetes.io/instance: {{ .Release.Name }}
 {{- end -}}
 
+
+{{- define "k8s-micro.config" -}}
+{{- $baseconfig := fromYaml (.Files.Get "configs/config.yaml") }}
+{{- $newconfig := .Values.configs }}
+{{- $postmerge := mergeOverwrite $baseconfig $newconfig }}
+{{- toYaml $postmerge }}
+{{- end -}}
+
+{{- define "k8s-micro.volumes" -}}
+{{- tpl (toYaml .Values.volumes) . }}
+{{- end -}}
+
+{{- define "k8s-micro.volumeMounts" -}}
+{{- tpl (toYaml .Values.volumeMounts) . }}
+{{- end -}}
+
+
+
 {{/*
 Create the name of the service account to use
 */}}

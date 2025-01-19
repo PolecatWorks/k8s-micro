@@ -35,7 +35,6 @@ class AppService(
     private val health: HealthSystem,
     private val metricsRegistry: PrometheusMeterRegistry,
     val config: K8sMicroConfig,
-    val secretDir: Path
 ) {
 
     private val running = AtomicBoolean(false)
@@ -78,7 +77,7 @@ class AppService(
     }
 
     private val kafkaProcessor = KafkaProcessor(config.kafkaProcessor, health, CIO_CLIENT.create(), running)
-    private val sqlServer = SqlServer(config.sqlServer, secretDir, health, running)
+    private val sqlServer = SqlServer(config.sqlServer, health, running)
 
     private suspend fun startCoroutines() = coroutineScope {
         running.set(true)
@@ -88,7 +87,7 @@ class AppService(
             running.set(false) // If we get here then definitely set running to false
         }
 
-        launch { kafkaProcessor.start() }
+//        launch { kafkaProcessor.start() }
 //        launch { sqlServer.start() }
 
         val myAlive = AliveMarginCheck("App coroutine", config.app.threadSleep * 3) // Limit as 3x of sleep
