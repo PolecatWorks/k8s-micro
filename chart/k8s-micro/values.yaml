@@ -23,9 +23,9 @@ volumes: &volumes
             optional: true
             name: "{{ .Values.secretName | default (include \"k8s-micro.fullname\" .) }}"
             items:
-              - key: db_username
+              - key: username
                 path: database/username
-              - key: db_password
+              - key: password
                 path: database/password
 
 

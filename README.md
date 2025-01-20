@@ -78,7 +78,9 @@ This repo uses the following dependencies:
 * Hoplite
 * Clikt
 
+# Create k8s secrets
 
+kubectl create secret generic k8s-micro --from-literal=username=user0 --from-literal=password=pass0
 
 ## GitHub Status
 
