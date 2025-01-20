@@ -18,7 +18,7 @@
 
         <junit.version>4.13.2</junit.version>
         <ktor_version>2.3.13</ktor_version>
-        <kafka_version>3.4.0</kafka_version>
+        <kafka_version>5.3.0-ccs</kafka_version>
         <serialization.version>1.4.1</serialization.version>
         <logback.version>1.4.12</logback.version>
         <mockk.version>1.13.3</mockk.version>
