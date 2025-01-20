@@ -23,10 +23,10 @@ volumes: &volumes
             optional: true
             name: "{{ .Values.secretName | default (include \"k8s-micro.fullname\" .) }}"
             items:
-              - key: access_key_id
-                path: s3/access_key_id
-              - key: secret_key
-                path: s3/secret_key
+              - key: db_username
+                path: database/username
+              - key: db_password
+                path: database/password
 
 
 volumeMounts: &volume-mount
