@@ -58,6 +58,6 @@ class ReadyStateCheck(override val name: String) : IHealthCheck {
 
     @ExperimentalTime
     override fun checkValid(time: ValueTimeMark): Boolean {
-        TODO("Not yet implemented")
+        return state.get()
     }
 }
