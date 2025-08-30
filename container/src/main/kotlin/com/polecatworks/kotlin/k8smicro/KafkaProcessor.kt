@@ -1,9 +1,8 @@
 package com.polecatworks.kotlin.k8smicro
 
 import com.github.avrokotlin.avro4k.Avro
-import com.github.avrokotlin.avro4k.AvroName
-import com.github.avrokotlin.avro4k.AvroNamespace
-import com.github.avrokotlin.avro4k.io.AvroEncodeFormat
+import com.github.avrokotlin.avro4k.schema
+//import com.github.avrokotlin.avro4k.io.AvroEncodeFormat
 import com.github.thake.kafka.avro4k.serializer.Avro4kSerde
 import com.github.thake.kafka.avro4k.serializer.KafkaAvro4kDeserializer
 import com.github.thake.kafka.avro4k.serializer.KafkaAvro4kDeserializerConfig
@@ -15,6 +14,7 @@ import io.ktor.client.engine.*
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import mu.KotlinLogging
 import org.apache.avro.generic.GenericRecord
@@ -66,9 +66,8 @@ class KafkaProcessor(
     val running: AtomicBoolean
 ) {
 
-    @AvroNamespace("com.polecatworks.chaser")
-    @AvroName("Chaser")
     @Serializable
+    @SerialName("com.polecatworks.chaser.Chaser")
     data class Chaser(
         val name: String,
         val id: String,
@@ -78,7 +77,7 @@ class KafkaProcessor(
     )
 
     val schemaRegistryApi = KafkaSchemaRegistryApi(config.schemaRegistry, engine, health, running)
-    val chaserSchema = Avro.default.schema(Chaser.serializer())
+    val chaserSchema = Avro.schema<Chaser>()
     var chaserId: Int? = null
     suspend fun start() = coroutineScope {
         logger.info("Starting kafka processing")
@@ -96,39 +95,39 @@ class KafkaProcessor(
             }
         }
 
-        if (true) {
-            val myChaser = Chaser("ABCNAME", "ID1", 12, 22, null)
-            val baos = ByteArrayOutputStream()
-            Avro.default.openOutputStream(Chaser.serializer()) {
-                encodeFormat = AvroEncodeFormat.Binary
-            }.to(baos).write(myChaser).close()
-
-            val baosString = baos.toString()
-            logger.info("Looking at output = $baosString of length ${baosString.length}")
-
-            val ben = Avro.default.toRecord(Chaser.serializer(), myChaser)
-            logger.info("Chaser = $ben")
-
-            logger.info("Chaser Schema registered for topic ${config.readTopic} with id: $chaserId")
-        }
-        if (true) {
-            val serializer = KafkaAvro4kSerializer()
-            serializer.configure(
-                mapOf(
-                    AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS to "true",
-                    AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to schemaRegistryApi.schemaRegistryUrl
-                ),
-                false
-            )
-            val avroSchema = Avro.default.schema(Chaser.serializer())
-            val topic = "input"
-            val subjectName = "$topic-value"
-
-            val myChaser = Chaser("ABCNAME", "ID1", 12, 22)
-            val result = serializer.serialize(topic, myChaser)
-
-            logger.info("Serdes using xxxx = $result")
-        }
+//        if (true) {
+//            val myChaser = Chaser("ABCNAME", "ID1", 12, 22, null)
+//            val baos = ByteArrayOutputStream()
+//            Avro.default.openOutputStream(Chaser.serializer()) {
+//                encodeFormat = AvroEncodeFormat.Binary
+//            }.to(baos).write(myChaser).close()
+//
+//            val baosString = baos.toString()
+//            logger.info("Looking at output = $baosString of length ${baosString.length}")
+//
+//            val ben = Avro.default.toRecord(Chaser.serializer(), myChaser)
+//            logger.info("Chaser = $ben")
+//
+//            logger.info("Chaser Schema registered for topic ${config.readTopic} with id: $chaserId")
+//        }
+//        if (true) {
+//            val serializer = KafkaAvro4kSerializer()
+//            serializer.configure(
+//                mapOf(
+//                    AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS to "true",
+//                    AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to schemaRegistryApi.schemaRegistryUrl
+//                ),
+//                false
+//            )
+//            val avroSchema = Avro.default.schema(Chaser.serializer())
+//            val topic = "input"
+//            val subjectName = "$topic-value"
+//
+//            val myChaser = Chaser("ABCNAME", "ID1", 12, 22)
+//            val result = serializer.serialize(topic, myChaser)
+//
+//            logger.info("Serdes using xxxx = $result")
+//        }
 
         val streamsBuilder = StreamsBuilder()
         val streamProperties = mapOf<String, String>(

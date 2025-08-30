@@ -4,6 +4,7 @@ import com.polecatworks.kotlin.k8smicro.app.AppService
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
 import io.ktor.server.cio.*
+import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.*
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.coroutineScope
@@ -25,12 +26,11 @@ class HealthService(
     private val port: Int = 8079
 ) {
     private var running = AtomicBoolean(false)
-    private val server = io.ktor.server.engine.embeddedServer(
+    private val server = embeddedServer(
         CIO,
         port = this.port,
         host = "0.0.0.0",
-        configure = {
-        }
+
     ) {
         log.info("Health Webservice: initialising")
         install(ContentNegotiation) {

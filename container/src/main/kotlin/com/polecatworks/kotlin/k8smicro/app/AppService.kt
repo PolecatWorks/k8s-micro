@@ -10,8 +10,9 @@ import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import com.polecatworks.kotlin.k8smicro.health.ReadyStateCheck
 import io.ktor.serialization.kotlinx.json.*
 import io.ktor.server.application.*
+import io.ktor.server.engine.embeddedServer
 import io.ktor.server.metrics.micrometer.*
-import io.ktor.server.plugins.callloging.*
+import io.ktor.server.plugins.calllogging.CallLogging
 import io.ktor.server.plugins.contentnegotiation.*
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.coroutineScope
@@ -19,7 +20,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import mu.KotlinLogging
-import java.nio.file.Path
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import io.ktor.client.engine.cio.CIO as CIO_CLIENT
@@ -38,11 +38,11 @@ class AppService(
 ) {
 
     private val running = AtomicBoolean(false)
-    private val server = io.ktor.server.engine.embeddedServer(
+    private val server = embeddedServer(
         CIO_SERVER,
         port = config.webserver.port,
         host = "0.0.0.0",
-        configure = {}
+//        configure = {}
     ) {
         log.info("App Webservice: initialising")
         install(CallLogging) {
