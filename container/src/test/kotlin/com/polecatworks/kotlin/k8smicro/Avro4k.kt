@@ -11,6 +11,7 @@ import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
+import io.ktor.client.engine.mock.toByteArray
 import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
@@ -19,6 +20,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.decodeFromByteArray
 import kotlinx.serialization.encodeToByteArray
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.serializer
 import org.junit.Ignore
 import org.junit.Test
@@ -32,6 +36,8 @@ import kotlin.time.Duration.Companion.seconds
 val schemaRegistryUrl = "http://localhost:8081"
 
 class Avro4k {
+    val schemaMap = mapOf("Burger" to 2, "Pizza" to 1)
+
     // 1. Create a Margherita Pizza object
     val margherita =
         Event.Pizza(
@@ -89,6 +95,60 @@ class Avro4k {
                 ),
             kcals = 200,
         )
+
+    val schmeaConfig = KafkaSchemaRegistryConfig(schemaRegistryUrl, 60.seconds)
+    val mockEngine =
+        MockEngine { request ->
+            println(request)
+            when (request.url.encodedPath) {
+                "/config" -> {
+                    respond(
+                        content = ByteReadChannel("""{"compatibilityLevel": "FULL"}"""),
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+
+                "/subjects/test001-value/versions" -> {
+
+                    val body = Json.parseToJsonElement(request.body.toByteArray().decodeToString()).jsonObject
+
+                    val schema =
+                        when (val value = body["schema"]) {
+                            is JsonPrimitive -> value.content
+                            else -> ""
+                        }
+
+                    val schemaContent = Json.parseToJsonElement(schema).jsonObject
+
+                    val schemaName =
+                        when (val value = schemaContent["name"]) {
+                            is JsonPrimitive -> value.content
+                            else -> ""
+                        }
+
+                    val schemaId = schemaMap[schemaName]
+
+                    respond(
+                        content = ByteReadChannel("""{"id": $schemaId}"""),
+                        status = HttpStatusCode.OK,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+                else -> {
+                    respond(
+                        content = ByteReadChannel("""{"error_code":404,"message":"Not found"}"""),
+                        status = HttpStatusCode.NotFound,
+                        headers = headersOf(HttpHeaders.ContentType, "application/json"),
+                    )
+                }
+            }
+        }
+    val running = AtomicBoolean()
+    val health = HealthSystem()
+
+    val schemaRegistryApi =
+        KafkaSchemaRegistryApi(schmeaConfig, mockEngine, health, running)
 
     @Test
     fun writeReadAvro() {
@@ -157,7 +217,14 @@ class Avro4k {
     fun eventSerializer() {
         val foods = listOf(margherita, burger)
 
-        val eventSerializer = EventSerializer()
+        val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
+
+        val schemaIdPizza = 1
+        eventSchemaManager.registerSchema(Event.Pizza::class.java, schemaIdPizza)
+        val schemaIdBurger = 2
+        eventSchemaManager.registerSchema(Event.Burger::class.java, schemaIdBurger)
+
+        val eventSerializer = EventSerializer(eventSchemaManager)
 
         val serializeds = foods.map { food -> eventSerializer.serialize("topic", food) }
 
@@ -179,11 +246,18 @@ class Avro4k {
     fun eventDeserializer() {
         val foods = listOf(margherita, burger)
 
-        val eventSerializer = EventSerializer()
+        val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
+
+        val schemaIdPizza = 1
+        eventSchemaManager.registerSchema(Event.Pizza::class.java, schemaIdPizza)
+        val schemaIdBurger = 2
+        eventSchemaManager.registerSchema(Event.Burger::class.java, schemaIdBurger)
+
+        val eventSerializer = EventSerializer(eventSchemaManager)
 
         val serializeds = foods.map { food -> eventSerializer.serialize("topic", food) }
 
-        val eventDeSerializer = EventDeSerializer()
+        val eventDeSerializer = EventDeSerializer(eventSchemaManager)
 
         val deserializedFoods = serializeds.map { foodBytes -> eventDeSerializer.deserialize("topic", foodBytes) }
 
@@ -230,37 +304,6 @@ class Avro4k {
          *
          */
 
-            val mockEngine =
-                MockEngine { request ->
-                    println(request)
-                    when (request.url.encodedPath) {
-                        "/config" -> {
-                            respond(
-                                content = ByteReadChannel("""{"compatibilityLevel": "FULL"}"""),
-                                status = HttpStatusCode.OK,
-                                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                            )
-                        }
-
-                        "/subjects/test001-value/versions" -> {
-                            respond(
-                                content = ByteReadChannel("""{"id": 1}"""),
-                                status = HttpStatusCode.OK,
-                                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                            )
-                        }
-
-                        else -> {
-                            respond(
-                                content = ByteReadChannel("""{"error_code":404,"message":"Not found"}"""),
-                                status = HttpStatusCode.NotFound,
-                                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                            )
-                        }
-                    }
-                }
-            val running = AtomicBoolean()
-            val health = HealthSystem()
             val schemaServer =
                 KafkaSchemaRegistryApi(KafkaSchemaRegistryConfig("http://localhost:8082", 60.seconds), mockEngine, health, running)
 
@@ -278,83 +321,25 @@ class Avro4k {
     @Test
     fun registerAllEventSchemas() =
         runBlocking {
-            val mockEngine =
-                MockEngine { request ->
-                    println(request)
-                    when (request.url.encodedPath) {
-                        "/config" -> {
-                            respond(
-                                content = ByteReadChannel("""{"compatibilityLevel": "FULL"}"""),
-                                status = HttpStatusCode.OK,
-                                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                            )
-                        }
-                        "/subjects/test001-value/versions" -> {
-                            respond(
-                                content = ByteReadChannel("""{"id": 1}"""),
-                                status = HttpStatusCode.OK,
-                                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                            )
-                        }
-                        else -> {
-                            respond(
-                                content = ByteReadChannel("""{"error_code":404,"message":"Not found"}"""),
-                                status = HttpStatusCode.NotFound,
-                                headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                            )
-                        }
-                    }
-                }
-            val running = AtomicBoolean()
-            val health = HealthSystem()
             val schemaServer =
                 KafkaSchemaRegistryApi(KafkaSchemaRegistryConfig("http://localhost:8082", 60.seconds), mockEngine, health, running)
 
-            for (myClass in Event.subClasses()) {
-                val schema = Avro.schema(myClass.serializer().descriptor)
+            val myMap =
+                Event.subClasses().iterator().asSequence().associate { myClass ->
+                    val schema = Avro.schema(myClass.serializer().descriptor)
 
-                val schemaId = schemaServer.registerSchema("test001-value", schema.toString())
-                assertEquals(1, schemaId)
-            }
+                    val schemaId = schemaServer.registerSchema("test001-value", schema.toString())
+
+                    myClass.simpleName!! to schemaId
+                }
+
+            assertEquals(schemaMap, myMap)
         }
 
     // Test EventSchemaManager to confirm init + adding schema and reading a schema via id or class
     @Test
     fun testEventSchemaManager() {
-        val mockEngine =
-            MockEngine { request ->
-                println(request)
-                when (request.url.encodedPath) {
-                    "/config" -> {
-                        respond(
-                            content = ByteReadChannel("""{"compatibilityLevel": "FULL"}"""),
-                            status = HttpStatusCode.OK,
-                            headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                        )
-                    }
-                    "/subjects/test001-value/versions" -> {
-                        respond(
-                            content = ByteReadChannel("""{"id": 1}"""),
-                            status = HttpStatusCode.OK,
-                            headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                        )
-                    }
-                    else -> {
-                        respond(
-                            content = ByteReadChannel("""{"error_code":404,"message":"Not found"}"""),
-                            status = HttpStatusCode.NotFound,
-                            headers = headersOf(HttpHeaders.ContentType, "application/json"),
-                        )
-                    }
-                }
-            }
-
-        val running = AtomicBoolean()
-        val health = HealthSystem()
-
-        val kafkaSchemaRegistryApi =
-            KafkaSchemaRegistryApi(KafkaSchemaRegistryConfig("http://localhost:8082", 60.seconds), mockEngine, health, running)
-        val eventSchemaManager = EventSchemaManager(kafkaSchemaRegistryApi)
+        val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
 
         // Register a schema
         val schemaIdPizza = 1
@@ -377,5 +362,48 @@ class Avro4k {
         // Retrieve class by schema id
         val retrievedClassBurger = eventSchemaManager.getClassForSchemaId(schemaIdBurger)
         assertEquals(Event.Burger::class.java, retrievedClassBurger)
+
+        val marg = eventSchemaManager.getSchemaIdForEvent(margherita)
+        assertEquals(schemaIdPizza, marg)
+
+        val burg = eventSchemaManager.getSchemaIdForEvent(burger)
+
+        assertEquals(schemaIdBurger, burg)
+    }
+
+    @Test
+    fun testEventSchemaManagerAuto() {
+        val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
+        runBlocking {
+            eventSchemaManager.registerAllSchemas("test001-value")
+        }
+
+        val schemaIdPizza = 1
+        val schemaIdBurger = 2
+
+        // Retrieve schema by class
+        val retrievedSchemaIdPizza = eventSchemaManager.getSchemaIdForClass(Event.Pizza::class.java)
+        assertEquals(schemaIdPizza, retrievedSchemaIdPizza)
+
+        // Retrieve class by schema id
+        val retrievedClassPizza = eventSchemaManager.getClassForSchemaId(schemaIdPizza)
+        assertEquals(Event.Pizza::class.java, retrievedClassPizza)
+
+        // Retrieve schema by class
+        val retrievedSchemaIdBurger = eventSchemaManager.getSchemaIdForClass(Event.Burger::class.java)
+        assertEquals(schemaIdBurger, retrievedSchemaIdBurger)
+
+        // Retrieve class by schema id
+        val retrievedClassBurger = eventSchemaManager.getClassForSchemaId(schemaIdBurger)
+        assertEquals(Event.Burger::class.java, retrievedClassBurger)
+
+        val marg = eventSchemaManager.getSchemaIdForEvent(margherita)
+        assertEquals(schemaIdPizza, marg)
+
+        val burg = eventSchemaManager.getSchemaIdForEvent(burger)
+
+        assertEquals(schemaIdBurger, burg)
+
+        println(eventSchemaManager)
     }
 }

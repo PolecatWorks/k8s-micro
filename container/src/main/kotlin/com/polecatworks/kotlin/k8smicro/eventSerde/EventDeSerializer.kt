@@ -5,42 +5,45 @@ import kotlinx.serialization.decodeFromByteArray
 import org.apache.kafka.common.serialization.Deserializer
 import java.nio.ByteBuffer
 
-class EventDeSerializer: Deserializer<Event> {
-
+class EventDeSerializer : Deserializer<Event> {
     companion object {
         const val MAGIC_BYTE: Byte = 0x0
         const val SCHEMA_ID_SIZE = 4
     }
 
+    private val schemaManager: EventSchemaManager
+
+    constructor(schemaManager: EventSchemaManager) {
+        this.schemaManager = schemaManager
+    }
 
     override fun deserialize(
         topic: String?,
-        data: ByteArray?
+        data: ByteArray?,
     ): Event? {
         if (data == null) return null
         if (topic == null) return null
         if (data.size < SCHEMA_ID_SIZE + 1 + 1) throw IllegalArgumentException("Data block is too short")
 
-
-        val magicByte =data[0];
+        val magicByte = data[0]
 
         if (magicByte != MAGIC_BYTE) {
             throw IllegalArgumentException("Invalid magic byte: $magicByte")
         }
 
-
         val schemaId = ByteBuffer.wrap(data.sliceArray(1..SCHEMA_ID_SIZE)).getInt()
 
+        val objBytes = data.sliceArray(SCHEMA_ID_SIZE + 1..<data.size)
 
-        val objBytes = data.sliceArray(SCHEMA_ID_SIZE+1..<data.size)
+        val myClass = schemaManager.getClassForSchemaId(schemaId)
 
-        val returnEvent = when (schemaId) {
-            4 -> Avro.decodeFromByteArray<Event.Pizza>(objBytes)
-            5 -> Avro.decodeFromByteArray<Event.Burger>(objBytes)
-            else -> throw IllegalArgumentException("SchemaId not known")
-        }
+        val returnEvent =
+            when (schemaId) {
+                1 -> Avro.decodeFromByteArray<Event.Pizza>(objBytes)
+                2 -> Avro.decodeFromByteArray<Event.Burger>(objBytes)
+                else -> throw IllegalArgumentException("SchemaId not known")
+            }
 
         return returnEvent
     }
-
 }

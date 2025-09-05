@@ -8,17 +8,21 @@ import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 
 class EventSerializer : Serializer<Event> {
-
     companion object {
         const val MAGIC_BYTE: Byte = 0x0
         const val SCHEMA_ID_SIZE = 4
     }
 
+    private val schemaManager: EventSchemaManager
+
+    constructor(schemaManager: EventSchemaManager) {
+        this.schemaManager = schemaManager
+    }
 
     @OptIn(ExperimentalSerializationApi::class)
     override fun serialize(
         topic: String?,
-        data: Event?
+        data: Event?,
     ): ByteArray? {
         if (data == null) return null
         if (topic == null) return null
@@ -26,22 +30,25 @@ class EventSerializer : Serializer<Event> {
         val outputStream = ByteArrayOutputStream()
         outputStream.write(MAGIC_BYTE.toInt())
 
-        val schemaId = when (data) {
-            is Event.Pizza -> 4
-            is Event.Burger -> 5
-        }
+        val schemaId = schemaManager.getSchemaIdForEvent(data)!!
+
+        // val schemaId = when (data) {
+        //     is Event.Pizza -> 4
+        //     is Event.Burger -> 5
+        // }
 //            outputStream.write(schemaId)
         outputStream.write(ByteBuffer.allocate(SCHEMA_ID_SIZE).putInt(schemaId).array())
 
 //            Avro.encodeToStream(data, outputStream)
-        val output_bytes = when (data) {
-            is Event.Burger -> Avro.Default.encodeToByteArray(data)
-            is Event.Pizza ->  Avro.Default.encodeToByteArray(data)
-        }
+        val outputBytes =
+            when (data) {
+                is Event.Burger -> Avro.Default.encodeToByteArray(data)
+                is Event.Pizza -> Avro.Default.encodeToByteArray(data)
+            }
 
-        println("temp serialized $output_bytes size ${output_bytes.size}")
+        println("temp serialized $outputBytes size ${outputBytes.size}")
 
-        outputStream.write(output_bytes)
+        outputStream.write(outputBytes)
 
         return outputStream.toByteArray()
     }
