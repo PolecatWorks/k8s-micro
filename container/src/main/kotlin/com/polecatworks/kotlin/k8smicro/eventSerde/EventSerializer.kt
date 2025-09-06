@@ -13,7 +13,7 @@ class EventSerializer : Serializer<Event> {
         const val SCHEMA_ID_SIZE = 4
     }
 
-    private val schemaManager: EventSchemaManager
+    public val schemaManager: EventSchemaManager
 
     constructor(schemaManager: EventSchemaManager) {
         this.schemaManager = schemaManager
@@ -24,29 +24,21 @@ class EventSerializer : Serializer<Event> {
         topic: String?,
         data: Event?,
     ): ByteArray? {
-        if (data == null) return null
         if (topic == null) return null
+        if (data == null) return null
 
         val outputStream = ByteArrayOutputStream()
         outputStream.write(MAGIC_BYTE.toInt())
 
         val schemaId = schemaManager.getSchemaIdForEvent(data)!!
-
-        // val schemaId = when (data) {
-        //     is Event.Pizza -> 4
-        //     is Event.Burger -> 5
-        // }
-//            outputStream.write(schemaId)
         outputStream.write(ByteBuffer.allocate(SCHEMA_ID_SIZE).putInt(schemaId).array())
 
-//            Avro.encodeToStream(data, outputStream)
         val outputBytes =
             when (data) {
-                is Event.Burger -> Avro.Default.encodeToByteArray(data)
-                is Event.Pizza -> Avro.Default.encodeToByteArray(data)
+                is Event.Burger -> Avro.encodeToByteArray<Event.Burger>(data)
+                is Event.Pizza -> Avro.encodeToByteArray<Event.Pizza>(data)
+                // When is exhaustive so compiler will fault if we do not complete all options
             }
-
-        println("temp serialized $outputBytes size ${outputBytes.size}")
 
         outputStream.write(outputBytes)
 

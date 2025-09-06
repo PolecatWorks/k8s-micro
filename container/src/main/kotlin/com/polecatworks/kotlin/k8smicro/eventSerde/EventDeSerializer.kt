@@ -27,23 +27,16 @@ class EventDeSerializer : Deserializer<Event> {
 
         val magicByte = data[0]
 
-        if (magicByte != MAGIC_BYTE) {
-            throw IllegalArgumentException("Invalid magic byte: $magicByte")
-        }
+        if (magicByte != MAGIC_BYTE) throw IllegalArgumentException("Invalid magic byte: $magicByte")
 
         val schemaId = ByteBuffer.wrap(data.sliceArray(1..SCHEMA_ID_SIZE)).getInt()
 
+        val deserializer =
+            schemaManager.getDeserializerForSchemaId(schemaId)
+                ?: throw IllegalArgumentException("No deserializer found for $schemaId")
+
         val objBytes = data.sliceArray(SCHEMA_ID_SIZE + 1..<data.size)
 
-        val myClass = schemaManager.getClassForSchemaId(schemaId)
-
-        val returnEvent =
-            when (schemaId) {
-                1 -> Avro.decodeFromByteArray<Event.Pizza>(objBytes)
-                2 -> Avro.decodeFromByteArray<Event.Burger>(objBytes)
-                else -> throw IllegalArgumentException("SchemaId not known")
-            }
-
-        return returnEvent
+        return Avro.decodeFromByteArray(deserializer, objBytes) as Event
     }
 }
