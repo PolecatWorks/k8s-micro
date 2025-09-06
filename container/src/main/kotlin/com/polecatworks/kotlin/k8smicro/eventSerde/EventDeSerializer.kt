@@ -6,16 +6,16 @@ import org.apache.kafka.common.serialization.Deserializer
 import java.nio.ByteBuffer
 
 class EventDeSerializer : Deserializer<Event> {
+    constructor(schemaManager: EventSchemaManager) {
+        this.schemaManager = schemaManager
+    }
+
     companion object {
         const val MAGIC_BYTE: Byte = 0x0
         const val SCHEMA_ID_SIZE = 4
     }
 
     private val schemaManager: EventSchemaManager
-
-    constructor(schemaManager: EventSchemaManager) {
-        this.schemaManager = schemaManager
-    }
 
     override fun deserialize(
         topic: String?,
