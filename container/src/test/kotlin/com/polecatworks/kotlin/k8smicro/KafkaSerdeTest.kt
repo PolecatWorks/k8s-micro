@@ -6,7 +6,6 @@ import com.polecatworks.kotlin.k8smicro.eventSerde.EventSerde
 import com.polecatworks.kotlin.k8smicro.eventSerde.Ingredient
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import io.ktor.client.engine.mock.MockEngine
-import io.ktor.client.engine.mock.MockEngine.Companion.invoke
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.toByteArray
 import io.ktor.http.HttpHeaders
@@ -22,7 +21,7 @@ import kotlin.test.Test
 import kotlin.time.Duration.Companion.seconds
 
 class KafkaSerdeTest {
-    val schemaMap = mapOf("Burger" to 2, "Pizza" to 1)
+    val schemaMap = mapOf("Pizza" to 1, "Burger" to 2, "Chaser" to 3)
 
     // 1. Create a Margherita Pizza object
     val margherita =
@@ -121,5 +120,32 @@ class KafkaSerdeTest {
 
         val deserialized = serde.deserializer().deserialize("test001-value", serialized)
         assert(margherita == deserialized) { "Deserialized event does not match original" }
+    }
+
+    @Test
+    fun kafkaChaserSerde() {
+        val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
+        runBlocking {
+            eventSchemaManager.registerAllSchemas("test001-value")
+        }
+
+        val myChaser = Event.Chaser("Peachock", "id0", 123, 22, null)
+
+        val serde = EventSerde<Event>(eventSchemaManager)
+        val serialized = serde.serializer().serialize("test001-value", myChaser)
+
+        val deserialized = serde.deserializer().deserialize("test001-value", serialized)
+        assert(myChaser == deserialized) { "Deserialized event does not match original" }
+
+//        val genericAvroSerde = GenericAvroSerde()
+//
+//        genericAvroSerde.configure(
+//            mapOf(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to schemaRegistryApi.schemaRegistryUrl),
+//            false
+//        )
+//
+//        val genericDeserialized = genericAvroSerde.deserializer().deserialize("test001-value", serialized)
+//
+//        assertEquals(myChaser.name,genericDeserialized.get("name"))
     }
 }

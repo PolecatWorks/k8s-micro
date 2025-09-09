@@ -1,7 +1,5 @@
 package com.polecatworks.kotlin.k8smicro.app
 
-import com.papsign.ktor.openapigen.OpenAPIGen
-import com.papsign.ktor.openapigen.openAPIGen
 import com.polecatworks.kotlin.k8smicro.K8sMicroConfig
 import com.polecatworks.kotlin.k8smicro.KafkaProcessor
 import com.polecatworks.kotlin.k8smicro.SqlServer
@@ -28,7 +26,7 @@ import io.ktor.server.cio.CIO as CIO_SERVER
 private val logger = KotlinLogging.logger {}
 
 data class AppServiceState(
-    var count: AtomicInteger
+    var count: AtomicInteger,
 )
 
 class AppService(
@@ -36,42 +34,31 @@ class AppService(
     private val metricsRegistry: PrometheusMeterRegistry,
     val config: K8sMicroConfig,
 ) {
-
     private val running = AtomicBoolean(false)
-    private val server = embeddedServer(
-        CIO_SERVER,
-        port = config.webserver.port,
-        host = "0.0.0.0",
+    private val server =
+        embeddedServer(
+            CIO_SERVER,
+            port = config.webserver.port,
+            host = "0.0.0.0",
 //        configure = {}
-    ) {
-        log.info("App Webservice: initialising")
-        install(CallLogging) {
-            // level = Level.INFO
-        }
-        install(OpenAPIGen) {
-            // serveOpenApiJson = true
-            info {
-                title = "k8s-minimal"
-                version = "0.0.0"
-                description = "K8s Micro API"
-                contact {
-                    name = "Ben Greene"
-                    email = "BenJGreene+polecatworks@gmail.com"
-                }
+        ) {
+            log.info("App Webservice: initialising")
+            install(CallLogging) {
+                // level = Level.INFO
             }
+            install(ContentNegotiation) {
+                json()
+            }
+            install(MicrometerMetrics) {
+                registry = metricsRegistry
+            }
+            configureAppRouting(this@AppService)
         }
-        install(ContentNegotiation) {
-            json()
-        }
-        install(MicrometerMetrics) {
-            registry = metricsRegistry
-        }
-        configureAppRouting(this@AppService)
-    }
-    val openAPIGen get() = this.server.application.openAPIGen
-    val state = AppServiceState(
-        AtomicInteger(0)
-    )
+    val state =
+        AppServiceState(
+            AtomicInteger(0),
+        )
+
     init {
         logger.info { "App Service: Init complete" }
     }
@@ -79,57 +66,59 @@ class AppService(
     private val kafkaProcessor = KafkaProcessor(config.kafkaProcessor, health, CIO_CLIENT.create(), running)
     private val sqlServer = SqlServer(config.sqlServer, health, running)
 
-    private suspend fun startCoroutines() = coroutineScope {
-        running.set(true)
-        logger.info("App Service: Set to run")
-        launch {
-            server.start(wait = true)
-            running.set(false) // If we get here then definitely set running to false
-        }
+    private suspend fun startCoroutines() =
+        coroutineScope {
+            running.set(true)
+            logger.info("App Service: Set to run")
+            launch {
+                server.start(wait = true)
+                running.set(false) // If we get here then definitely set running to false
+            }
 
-//        launch { kafkaProcessor.start() }
+            launch { kafkaProcessor.start() }
 //        launch { sqlServer.start() }
 
-        val myAlive = AliveMarginCheck("App coroutine", config.app.threadSleep * 3) // Limit as 3x of sleep
-        val myReady = ReadyStateCheck("App coroutine")
-        health.registerAlive(myAlive)
-        health.registerReady(myReady)
-        launch {
-            while (running.get()) {
-                delay(config.app.threadSleep)
-                val myCount = state.count.get()
-                if (myCount > 5) {
-                    if (myReady.busy()) {
-                        logger.info("Setting BUSY")
+            val myAlive = AliveMarginCheck("App coroutine", config.app.threadSleep * 3) // Limit as 3x of sleep
+            val myReady = ReadyStateCheck("App coroutine")
+            health.registerAlive(myAlive)
+            health.registerReady(myReady)
+            launch {
+                while (running.get()) {
+                    delay(config.app.threadSleep)
+                    val myCount = state.count.get()
+                    if (myCount > 5) {
+                        if (myReady.busy()) {
+                            logger.info("Setting BUSY")
+                        }
+                    } else if (myCount == 0) {
+                        if (myReady.ready()) {
+                            logger.info("Setting READY")
+                        }
                     }
-                } else if (myCount == 0) {
-                    if (myReady.ready()) {
-                        logger.info("Setting READY")
+                    if (myCount > 0) {
+                        state.count.decrementAndGet()
                     }
+                    myAlive.kick()
                 }
-                if (myCount > 0) {
-                    state.count.decrementAndGet()
-                }
-                myAlive.kick()
+                health.deregisterAlive(myAlive)
+                health.deregisterReady(myReady)
+                server.stop()
             }
-            health.deregisterAlive(myAlive)
-            health.deregisterReady(myReady)
-            server.stop()
         }
-    }
 
     /**
      * Create blocking coroutine context and wait for completion
      *
      * Dispatch web server and app service into this context
      */
-    fun start() = runBlocking {
-        logger.info { "App coroutines: Starting" }
+    fun start() =
+        runBlocking {
+            logger.info { "App coroutines: Starting" }
 
-        startCoroutines()
+            startCoroutines()
 
-        logger.info { "App coroutines: Complete" }
-    }
+            logger.info { "App coroutines: Complete" }
+        }
 
     fun stop() {
         running.set(false)

@@ -190,6 +190,7 @@ class Avro4k {
         when (myFood) {
             is Event.Burger -> println("BURGER")
             is Event.Pizza -> println("PIZZA")
+            is Event.Chaser -> println("Chaser")
         }
 
         println("food = $myFood")

@@ -50,11 +50,11 @@
             </exclusions>
         </dependency>
         <!-- https://github.com/LukasForst/ktor-openapi-generator -->
-        <dependency>
-            <groupId>dev.forst</groupId>
-            <artifactId>ktor-openapi-generator</artifactId>
-            <version>0.5.4</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>dev.forst</groupId>-->
+<!--            <artifactId>ktor-openapi-generator</artifactId>-->
+<!--            <version>0.5.4</version>-->
+<!--        </dependency>-->
         <!--  https://mockk.io/      -->
         <dependency>
             <groupId>io.mockk</groupId>
@@ -299,11 +299,11 @@
             <version>2.3.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.github.thake.avro4k/avro4k-kafka-serializer -->
-        <dependency>
-            <groupId>com.github.thake.avro4k</groupId>
-            <artifactId>avro4k-kafka-serializer</artifactId>
-            <version>0.14.0</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.github.thake.avro4k</groupId>-->
+<!--            <artifactId>avro4k-kafka-serializer</artifactId>-->
+<!--            <version>0.14.0</version>-->
+<!--        </dependency>-->
 
 
     </dependencies>

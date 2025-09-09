@@ -37,6 +37,7 @@ class EventSerializer : Serializer<Event> {
             when (data) {
                 is Event.Burger -> Avro.encodeToByteArray<Event.Burger>(data)
                 is Event.Pizza -> Avro.encodeToByteArray<Event.Pizza>(data)
+                is Event.Chaser -> Avro.encodeToByteArray<Event.Chaser>(data)
                 // When is exhaustive so compiler will fault if we do not complete all options
             }
 

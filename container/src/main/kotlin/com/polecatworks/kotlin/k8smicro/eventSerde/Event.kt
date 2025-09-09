@@ -1,5 +1,6 @@
 package com.polecatworks.kotlin.k8smicro.eventSerde
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.reflect.KClass
 
@@ -25,6 +26,16 @@ sealed class Event {
         val name: String,
         val ingredients: List<Ingredient>,
         val kcals: Int,
+    ) : Event()
+
+    @Serializable
+    @SerialName("com.polecatworks.chaser.Chaser")
+    data class Chaser(
+        val name: String,
+        val id: String,
+        val sent: Long,
+        val ttl: Long,
+        val previous: Long? = null,
     ) : Event()
 
     companion object {
