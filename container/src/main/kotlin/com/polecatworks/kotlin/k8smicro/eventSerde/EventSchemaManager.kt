@@ -2,9 +2,11 @@ package com.polecatworks.kotlin.k8smicro.eventSerde
 
 import com.github.avrokotlin.avro4k.Avro
 import com.polecatworks.kotlin.k8smicro.KafkaSchemaRegistryApi
+import com.polecatworks.kotlin.k8smicro.app.logger
 import kotlinx.serialization.InternalSerializationApi
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.serializer
+import mu.KotlinLogging.logger
 
 class EventSchemaManager {
     constructor(kafkaSchemaRegistryApi: KafkaSchemaRegistryApi) {
@@ -46,12 +48,14 @@ class EventSchemaManager {
     }
 
     @OptIn(InternalSerializationApi::class)
-    suspend fun registerAllSchemas(subject: String) {
+    suspend fun registerAllSchemas(topic: String) {
         for (myClass in Event.subClasses()) {
             val schema = Avro.schema(myClass.serializer().descriptor)
 
+            val subject = "$topic-${schema.fullName}"
             val schemaId = kafkaSchemaRegistryApi.registerSchema(subject, schema.toString())
 
+            logger.info("Registered schema for $subject as id $schemaId")
             registerSchema(myClass.java, schemaId)
         }
     }

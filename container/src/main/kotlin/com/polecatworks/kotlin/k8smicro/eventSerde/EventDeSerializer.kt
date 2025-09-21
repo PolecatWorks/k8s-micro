@@ -2,6 +2,7 @@ package com.polecatworks.kotlin.k8smicro.eventSerde
 
 import com.github.avrokotlin.avro4k.Avro
 import kotlinx.serialization.decodeFromByteArray
+import org.apache.kafka.common.errors.SerializationException
 import org.apache.kafka.common.serialization.Deserializer
 import java.nio.ByteBuffer
 
@@ -33,7 +34,7 @@ class EventDeSerializer : Deserializer<Event> {
 
         val deserializer =
             schemaManager.getDeserializerForSchemaId(schemaId)
-                ?: throw IllegalArgumentException("No deserializer found for $schemaId")
+                ?: throw SerializationException("No deserializer found for $schemaId")
 
         val objBytes = data.sliceArray(SCHEMA_ID_SIZE + 1..<data.size)
 

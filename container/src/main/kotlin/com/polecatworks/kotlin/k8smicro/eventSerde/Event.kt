@@ -14,6 +14,7 @@ data class Ingredient(
 @Serializable
 sealed class Event {
     @Serializable
+    @SerialName("com.polecatworks.event.Pizza")
     data class Pizza(
         val name: String,
         val ingredients: List<Ingredient>,
@@ -22,6 +23,7 @@ sealed class Event {
     ) : Event()
 
     @Serializable
+    @SerialName("com.polecatworks.event.Burger")
     data class Burger(
         val name: String,
         val ingredients: List<Ingredient>,
@@ -35,7 +37,7 @@ sealed class Event {
         val id: String,
         val sent: Long,
         val ttl: Long,
-        val previous: Long? = null,
+        val previous: Long?,
     ) : Event()
 
     companion object {

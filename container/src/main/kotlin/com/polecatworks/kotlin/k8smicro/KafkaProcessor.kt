@@ -1,17 +1,15 @@
 package com.polecatworks.kotlin.k8smicro
 
-import com.github.avrokotlin.avro4k.Avro
-import com.github.avrokotlin.avro4k.schema
-// import com.github.avrokotlin.avro4k.io.AvroEncodeFormat
+import com.polecatworks.kotlin.k8smicro.eventSerde.Event
+import com.polecatworks.kotlin.k8smicro.eventSerde.EventSchemaManager
+import com.polecatworks.kotlin.k8smicro.eventSerde.EventSerde
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import io.confluent.kafka.streams.serdes.avro.GenericAvroSerde
-import io.ktor.client.engine.*
+import io.ktor.client.engine.HttpClientEngine
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 import mu.KotlinLogging
 import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.common.serialization.Serde
@@ -26,7 +24,6 @@ import org.apache.kafka.streams.kstream.Grouped
 import org.apache.kafka.streams.kstream.Printed
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
-import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.concurrent.thread
 import kotlin.time.Duration
@@ -60,18 +57,19 @@ class KafkaProcessor(
     val engine: HttpClientEngine,
     val running: AtomicBoolean,
 ) {
-    @Serializable
-    @SerialName("com.polecatworks.chaser.Chaser")
-    data class Chaser(
-        val name: String,
-        val id: String,
-        val sent: Long,
-        val ttl: Long,
-        val previous: Long? = null,
-    )
+//    @Serializable
+//    @SerialName("com.polecatworks.chaser.Chaser")
+//    data class Chaser(
+//        val name: String,
+//        val id: String,
+//        val sent: Long,
+//        val ttl: Long,
+//        val previous: Long? = null,
+//    )
 
     val schemaRegistryApi = KafkaSchemaRegistryApi(config.schemaRegistry, engine, health, running)
-    val chaserSchema = Avro.schema<Chaser>()
+
+//    val chaserSchema = Avro.schema<Chaser>()
     var chaserId: Int? = null
 
     suspend fun start() =
@@ -79,18 +77,18 @@ class KafkaProcessor(
             logger.info("Starting kafka processing")
             launch { schemaRegistryApi.start() }
 
-            println("Checking for schema: $chaserSchema")
+//            println("Checking for schema: $chaserSchema")
 
             // TODO: Should be a liveness check associated with this loop
-            while (running.get() && chaserId === null) {
-                try {
-                    chaserId = schemaRegistryApi.registerSchema("${config.readTopic}-value", chaserSchema.toString())
-                    println("Got a chaser = $chaserId")
-                } catch (e: Exception) {
-                    println("I got the error : $e so sleeping for ${config.querySleep}")
-                    delay(config.querySleep)
-                }
-            }
+//            while (running.get() && chaserId === null) {
+//                try {
+//                    chaserId = schemaRegistryApi.registerSchema("${config.readTopic}-value", chaserSchema.toString())
+//                    println("Got a chaser = $chaserId")
+//                } catch (e: Exception) {
+//                    println("I got the error : $e so sleeping for ${config.querySleep}")
+//                    delay(config.querySleep)
+//                }
+//            }
 
 //        if (true) {
 //            val myChaser = Chaser("ABCNAME", "ID1", 12, 22, null)
@@ -140,24 +138,38 @@ class KafkaProcessor(
 //            KafkaAvro4kDeserializerConfig.RECORD_PACKAGES to KafkaProcessor::class.java.packageName
                 ).toProperties()
 
-            if (false) {
-                // Setup with Avro48 Specific Record
+            if (true) {
+                val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
+                eventSchemaManager.registerAllSchemas(config.readTopic)
+//                val eventSerde = EventSerializer(eventSchemaManager)
+                val eventSerde = EventSerde<Event>()
 
-                val mystream1 = streamsBuilder.stream<String, Chaser>(config.readTopic)
+                eventSerde.setSchemaManager(eventSchemaManager)
+
+                val mystream1 = streamsBuilder.stream<String, Event>(config.readTopic, Consumed.with(Serdes.String(), eventSerde))
+
                 mystream1
-                    .print(Printed.toSysOut<String?, Chaser?>().withLabel("Avro4k"))
-
-                val counts1 =
-                    mystream1
-                        .map { k, v -> KeyValue("$k-${v.name}", 1L) }
-                        .groupByKey(Grouped.with(Serdes.String(), Long()))
-                        .reduce { aggValue, newValue -> aggValue!! + newValue!! }
-                        .toStream()
-                counts1
-                    .print(Printed.toSysOut<String?, Long?>().withLabel("A4k-count"))
+                    .print(Printed.toSysOut<String, Event>().withLabel("Avro4k"))
             }
 
-            if (true) {
+//            if (false) {
+//                // Setup with Avro48 Specific Record
+//
+//                val mystream1 = streamsBuilder.stream<String, Chaser>(config.readTopic)
+//                mystream1
+//                    .print(Printed.toSysOut<String?, Chaser?>().withLabel("Avro4k"))
+//
+//                val counts1 =
+//                    mystream1
+//                        .map { k, v -> KeyValue("$k-${v.name}", 1L) }
+//                        .groupByKey(Grouped.with(Serdes.String(), Long()))
+//                        .reduce { aggValue, newValue -> aggValue!! + newValue!! }
+//                        .toStream()
+//                counts1
+//                    .print(Printed.toSysOut<String?, Long?>().withLabel("A4k-count"))
+//            }
+
+            if (false) {
                 // Setup with Confluent GenericRecord
                 val genericAvroSerde: Serde<GenericRecord> = GenericAvroSerde()
                 genericAvroSerde.configure(

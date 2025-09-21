@@ -6,12 +6,13 @@ import com.polecatworks.kotlin.k8smicro.SqlServer
 import com.polecatworks.kotlin.k8smicro.health.AliveMarginCheck
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import com.polecatworks.kotlin.k8smicro.health.ReadyStateCheck
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.application.*
+import io.ktor.serialization.kotlinx.json.json
+import io.ktor.server.application.install
+import io.ktor.server.application.log
 import io.ktor.server.engine.embeddedServer
-import io.ktor.server.metrics.micrometer.*
+import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.plugins.calllogging.CallLogging
-import io.ktor.server.plugins.contentnegotiation.*
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -23,7 +24,7 @@ import java.util.concurrent.atomic.AtomicInteger
 import io.ktor.client.engine.cio.CIO as CIO_CLIENT
 import io.ktor.server.cio.CIO as CIO_SERVER
 
-private val logger = KotlinLogging.logger {}
+val logger = KotlinLogging.logger {}
 
 data class AppServiceState(
     var count: AtomicInteger,

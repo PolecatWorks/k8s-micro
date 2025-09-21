@@ -5,6 +5,8 @@ import com.polecatworks.kotlin.k8smicro.eventSerde.EventSchemaManager
 import com.polecatworks.kotlin.k8smicro.eventSerde.EventSerde
 import com.polecatworks.kotlin.k8smicro.eventSerde.Ingredient
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
+import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
+import io.confluent.kafka.streams.serdes.avro.GenericAvroSerde
 import io.ktor.client.engine.mock.MockEngine
 import io.ktor.client.engine.mock.respond
 import io.ktor.client.engine.mock.toByteArray
@@ -18,6 +20,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.test.Test
+import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 
 class KafkaSerdeTest {
@@ -137,15 +140,15 @@ class KafkaSerdeTest {
         val deserialized = serde.deserializer().deserialize("test001-value", serialized)
         assert(myChaser == deserialized) { "Deserialized event does not match original" }
 
-//        val genericAvroSerde = GenericAvroSerde()
-//
-//        genericAvroSerde.configure(
-//            mapOf(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to schemaRegistryApi.schemaRegistryUrl),
-//            false
-//        )
-//
-//        val genericDeserialized = genericAvroSerde.deserializer().deserialize("test001-value", serialized)
-//
-//        assertEquals(myChaser.name,genericDeserialized.get("name"))
+        val genericAvroSerde = GenericAvroSerde()
+
+        genericAvroSerde.configure(
+            mapOf(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to schemaRegistryApi.schemaRegistryUrl),
+            false,
+        )
+
+        val genericDeserialized = genericAvroSerde.deserializer().deserialize("test001-value", serialized)
+
+        assertEquals(myChaser.name, genericDeserialized.get("name"))
     }
 }
