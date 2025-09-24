@@ -8,8 +8,14 @@ app:
   threadSleep: 1s
 kafkaProcessor:
   hostUrl: http://localhost:9092
+  bootstrapServers: localhost:9092
+  applicationId: k8s-micro-app
+  processingGuarantee: exactly_once_v2
+  autoOffsetReset: latest
   readTopic: input
   writeTopic: output
+  taskSleepDuration: 10s
+  querySleep: 15s
   schemaRegistry:
       hostUrl: http://localhost:8081
       checkDuration: 60s

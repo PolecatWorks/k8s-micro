@@ -12,6 +12,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
 import org.apache.avro.generic.GenericRecord
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.common.serialization.Serdes.Long
@@ -19,13 +20,14 @@ import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.KeyValue
 import org.apache.kafka.streams.StreamsBuilder
 import org.apache.kafka.streams.StreamsConfig
+import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler
 import org.apache.kafka.streams.kstream.Consumed
 import org.apache.kafka.streams.kstream.Grouped
+import org.apache.kafka.streams.kstream.Materialized
 import org.apache.kafka.streams.kstream.Printed
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.concurrent.thread
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -36,20 +38,13 @@ data class KafkaProcessorConfig constructor(
     val schemaRegistry: KafkaSchemaRegistryConfig,
     val readTopic: String,
     val writeTopic: String,
+    val applicationId: String = "kotlin1",
+    val bootstrapServers: String = "localhost:9092",
+    val processingGuarantee: String = StreamsConfig.EXACTLY_ONCE_V2,
+    val autoOffsetReset: String,
     val taskSleepDuration: Duration = 10.seconds,
     val querySleep: Duration = 15.seconds,
 )
-
-/*
-Copied from rust
-pub(crate) struct Chaser {
-    pub(crate) name: String,
-    pub(crate) id: String,
-    pub(crate) sent: i64,
-    pub(crate) ttl: u32,
-    pub(crate) previous: Option<i64>,
-}
- */
 
 class KafkaProcessor(
     val config: KafkaProcessorConfig,
@@ -57,16 +52,6 @@ class KafkaProcessor(
     val engine: HttpClientEngine,
     val running: AtomicBoolean,
 ) {
-//    @Serializable
-//    @SerialName("com.polecatworks.chaser.Chaser")
-//    data class Chaser(
-//        val name: String,
-//        val id: String,
-//        val sent: Long,
-//        val ttl: Long,
-//        val previous: Long? = null,
-//    )
-
     val schemaRegistryApi = KafkaSchemaRegistryApi(config.schemaRegistry, engine, health, running)
 
 //    val chaserSchema = Avro.schema<Chaser>()
@@ -127,47 +112,42 @@ class KafkaProcessor(
             val streamsBuilder = StreamsBuilder()
             val streamProperties =
                 mapOf<String, String>(
-                    StreamsConfig.APPLICATION_ID_CONFIG to "kotlin1",
-                    StreamsConfig.BOOTSTRAP_SERVERS_CONFIG to "localhost:9092",
-//            ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG to KafkaAvro4kDeserializer::class.java.name,
-//            ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG to KafkaAvro4kDeserializer::class.java.name,
+                    StreamsConfig.APPLICATION_ID_CONFIG to config.applicationId,
+                    StreamsConfig.BOOTSTRAP_SERVERS_CONFIG to config.bootstrapServers,
+                    StreamsConfig.PROCESSING_GUARANTEE_CONFIG to config.processingGuarantee,
+                    ConsumerConfig.AUTO_OFFSET_RESET_CONFIG to config.autoOffsetReset,
                     StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG to Serdes.String()::class.java.name,
-//            StreamsConfig.DEFAULT_KEY_SERDE_CLASS_CONFIG to Avro4kSerde::class.java.name,
-//            StreamsConfig.DEFAULT_VALUE_SERDE_CLASS_CONFIG to Avro4kSerde::class.java.name,
                     AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to schemaRegistryApi.schemaRegistryUrl,
-//            KafkaAvro4kDeserializerConfig.RECORD_PACKAGES to KafkaProcessor::class.java.packageName
+                    StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG to
+                        org.apache.kafka.streams.errors.LogAndContinueExceptionHandler::class.java.name,
                 ).toProperties()
 
             if (true) {
                 val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
                 eventSchemaManager.registerAllSchemas(config.readTopic)
-//                val eventSerde = EventSerializer(eventSchemaManager)
                 val eventSerde = EventSerde<Event>()
 
                 eventSerde.setSchemaManager(eventSchemaManager)
 
-                val mystream1 = streamsBuilder.stream<String, Event>(config.readTopic, Consumed.with(Serdes.String(), eventSerde))
+                val mystream1Specific = streamsBuilder.stream<String, Event>(config.readTopic, Consumed.with(Serdes.String(), eventSerde))
 
-                mystream1
+                mystream1Specific
                     .print(Printed.toSysOut<String, Event>().withLabel("Avro4k"))
-            }
 
-//            if (false) {
-//                // Setup with Avro48 Specific Record
-//
-//                val mystream1 = streamsBuilder.stream<String, Chaser>(config.readTopic)
-//                mystream1
-//                    .print(Printed.toSysOut<String?, Chaser?>().withLabel("Avro4k"))
-//
-//                val counts1 =
-//                    mystream1
-//                        .map { k, v -> KeyValue("$k-${v.name}", 1L) }
-//                        .groupByKey(Grouped.with(Serdes.String(), Long()))
-//                        .reduce { aggValue, newValue -> aggValue!! + newValue!! }
-//                        .toStream()
-//                counts1
-//                    .print(Printed.toSysOut<String?, Long?>().withLabel("A4k-count"))
-//            }
+                val mycountSpecific =
+                    mystream1Specific
+                        .map { k, v ->
+                            when (v) {
+                                is Event.Pizza -> KeyValue("$k-pizza", 1L)
+                                is Event.Burger -> KeyValue("$k-burger", 1L)
+                                is Event.Chaser -> KeyValue("$k-${v.name}", 1L)
+                            }
+                        }.groupByKey(Grouped.with(Serdes.String(), Long()))
+                        .reduce { aggValue, newValue -> aggValue!! + newValue!! }
+                        .toStream()
+                mycountSpecific
+                    .print(Printed.toSysOut<String?, Long?>().withLabel("Specific-count"))
+            }
 
             if (false) {
                 // Setup with Confluent GenericRecord
@@ -177,31 +157,41 @@ class KafkaProcessor(
                     false,
                 )
 
-                val mystream1 =
+                val streamGeneric =
                     streamsBuilder
                         .stream(config.readTopic, Consumed.with(Serdes.String(), genericAvroSerde))
-                mystream1
-                    .print(Printed.toSysOut<String?, GenericRecord?>().withLabel("Confluent"))
+                streamGeneric
+                    .print(Printed.toSysOut<String?, GenericRecord?>().withLabel("Generic"))
 
-                val counts1 =
-                    mystream1
+                val counts1Generic =
+                    streamGeneric
                         .map { k, v ->
                             val name = v.get("name")
                             KeyValue("$k-$name", 1L)
-                        }.groupByKey(Grouped.with(Serdes.String(), Long()))
-                        .reduce { aggValue, newValue -> aggValue!! + newValue!! }
+                        }.groupByKey(Grouped.with(Serdes.String(), Long()).withName("generic-group"))
+                        .reduce({ aggValue, newValue -> aggValue!! + newValue!! }, Materialized.`as`("generic-table"))
                         .toStream()
-                counts1
-                    .print(Printed.toSysOut<String?, Long?>().withLabel("Confluent-count"))
+                counts1Generic
+                    .print(Printed.toSysOut<String?, Long?>().withLabel("Generic-count"))
             }
+
             val streams = KafkaStreams(streamsBuilder.build(), streamProperties)
 
-            val kthread =
-                thread {
-                    streams.start()
-                }
+            streams.setUncaughtExceptionHandler(
+                StreamsUncaughtExceptionHandler { e ->
+                    logger.error(e) { "Streams crashed" }
+                    running.set(false)
+                    StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.SHUTDOWN_APPLICATION
+                },
+            )
+
+            streams.setStateListener { newState, oldState ->
+                logger.info { "Streams state $oldState -> $newState" }
+            }
 
             logger.info("Reading from input topic ${config.readTopic}")
+
+            streams.start()
 
 //            .stream(config.readTopic, Consumed.with(Serdes.String(), Serdes.String()))
             // .print(Printed.toSysOut<String, String>().withLabel("input-stream"))
@@ -244,16 +234,17 @@ class KafkaProcessor(
 //            logger.info("Started Kafka streams")
 //        }
 
-            logger.info("Kafka streams started in a a thread")
+            logger.info("Kafka streams started")
 
-            while (running.get()) {
-                println("**** Kafka task sleep waiting for it to complete")
-                delay(config.taskSleepDuration)
+            try {
+                while (running.get()) {
+                    println("**** Kafka task sleep waiting for it to complete")
+                    delay(config.taskSleepDuration)
+                }
+            } finally {
+                streams.close(java.time.Duration.ofSeconds(10))
+                logger.info("Ended kafka task")
             }
-
-            streams.close()
-            kthread.join()
-            logger.info("Ended kafka task")
         }
 
     /* Look to use a proper kafka serdes for this process so we can apply that directly to the kafka values.
