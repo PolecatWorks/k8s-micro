@@ -6,7 +6,6 @@ import io.ktor.server.application.*
 import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.micrometer.prometheus.PrometheusMeterRegistry
-import kserialize
 import kotlin.time.ExperimentalTime
 import kotlin.time.TimeSource
 
@@ -16,7 +15,7 @@ fun Application.configureHealthRouting(
     appService: AppService,
     appMicrometerRegistry: PrometheusMeterRegistry,
     health: HealthSystem,
-    healthService: HealthService
+    healthService: HealthService,
 ) {
     routing {
         route("/hams") {
@@ -41,7 +40,8 @@ fun Application.configureHealthRouting(
                 val now = TimeSource.Monotonic.markNow()
                 val myReady = health.checkReady(now)
                 call.response.status(if (myReady.valid) HttpStatusCode.OK else HttpStatusCode.TooManyRequests)
-                call.application.environment.log.info("Ready check: $myReady")
+                call.application.environment.log
+                    .info("Ready check: $myReady")
                 call.respond(myReady)
 //            call.respondText { "ready" }
             }
@@ -49,11 +49,9 @@ fun Application.configureHealthRouting(
                 val now = TimeSource.Monotonic.markNow()
                 val myReady = health.checkAlive(now)
                 call.response.status(if (myReady.valid) HttpStatusCode.OK else HttpStatusCode.NotAcceptable)
-                call.application.environment.log.info("Alive check: $myReady")
+                call.application.environment.log
+                    .info("Alive check: $myReady")
                 call.respond(myReady)
-            }
-            get("/openapi") {
-                call.respond(appService.openAPIGen.api.kserialize())
             }
         }
     }

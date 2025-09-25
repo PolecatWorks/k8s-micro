@@ -13,13 +13,13 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kotlin.version>1.9.0</kotlin.version>
+        <kotlin.version>2.2.10</kotlin.version>
         <kotlin.code.style>official</kotlin.code.style>
 
         <junit.version>4.13.2</junit.version>
-        <ktor_version>2.3.13</ktor_version>
+        <ktor_version>3.2.3</ktor_version>
         <kafka_version>3.4.0</kafka_version>
-        <serialization.version>1.4.1</serialization.version>
+        <serialization.version>1.9.0</serialization.version>
         <logback.version>1.4.12</logback.version>
         <mockk.version>1.13.3</mockk.version>
         <exposed_version>0.41.1</exposed_version>
@@ -50,11 +50,11 @@
             </exclusions>
         </dependency>
         <!-- https://github.com/LukasForst/ktor-openapi-generator -->
-        <dependency>
-            <groupId>dev.forst</groupId>
-            <artifactId>ktor-openapi-generator</artifactId>
-            <version>0.5.4</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>dev.forst</groupId>-->
+<!--            <artifactId>ktor-openapi-generator</artifactId>-->
+<!--            <version>0.5.4</version>-->
+<!--        </dependency>-->
         <!--  https://mockk.io/      -->
         <dependency>
             <groupId>io.mockk</groupId>
@@ -296,14 +296,14 @@
         <dependency>
             <groupId>com.github.avro-kotlin.avro4k</groupId>
             <artifactId>avro4k-core</artifactId>
-            <version>1.8.0</version>
+            <version>2.3.0</version>
         </dependency>
         <!-- https://mvnrepository.com/artifact/com.github.thake.avro4k/avro4k-kafka-serializer -->
-        <dependency>
-            <groupId>com.github.thake.avro4k</groupId>
-            <artifactId>avro4k-kafka-serializer</artifactId>
-            <version>0.14.0</version>
-        </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.github.thake.avro4k</groupId>-->
+<!--            <artifactId>avro4k-kafka-serializer</artifactId>-->
+<!--            <version>0.14.0</version>-->
+<!--        </dependency>-->
 
 
     </dependencies>
