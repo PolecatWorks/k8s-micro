@@ -24,7 +24,9 @@ import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler
 import org.apache.kafka.streams.kstream.Consumed
 import org.apache.kafka.streams.kstream.Grouped
 import org.apache.kafka.streams.kstream.Materialized
+import org.apache.kafka.streams.kstream.Named
 import org.apache.kafka.streams.kstream.Printed
+import org.apache.kafka.streams.kstream.Produced
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
@@ -141,12 +143,51 @@ class KafkaProcessor(
                                 is Event.Pizza -> KeyValue("$k-pizza", 1L)
                                 is Event.Burger -> KeyValue("$k-burger", 1L)
                                 is Event.Chaser -> KeyValue("$k-${v.name}", 1L)
+                                is Event.Aggregate -> KeyValue("$k-Agg", 1L)
                             }
                         }.groupByKey(Grouped.with(Serdes.String(), Long()))
                         .reduce { aggValue, newValue -> aggValue!! + newValue!! }
                         .toStream()
+
                 mycountSpecific
                     .print(Printed.toSysOut<String?, Long?>().withLabel("Specific-count"))
+
+                val myAggregate1 =
+                    mystream1Specific
+                        .groupByKey()
+                        .aggregate<Event?>(
+                            { Event.Aggregate(listOf(), 1, null, null) as Event },
+                            { k, v, agg ->
+                                val value =
+                                    when (v) {
+                                        is Event.Aggregate -> v
+                                        is Event.Chaser -> Event.Aggregate(listOf(v.name), 1, v.sent, v.ttl)
+                                        else -> Event.Aggregate(listOf(v.javaClass.name), 0, null, null)
+                                    }
+                                val aggregate =
+                                    when (agg) {
+                                        is Event.Aggregate -> agg
+                                        else -> throw IllegalArgumentException("Agg should not be class ${agg.javaClass.name}.")
+                                    }
+                                val uniqueNames = (value.names + aggregate.names).distinct()
+                                val count = value.count + aggregate.count
+                                val latest = maxOf(value.latest ?: 0, aggregate.latest ?: 0)
+                                val longest = maxOf(value.longest ?: 0, aggregate.longest ?: 0)
+
+                                Event.Aggregate(uniqueNames, count, latest, longest) as Event
+                            },
+                            Materialized.with(Serdes.String(), eventSerde),
+                        ).toStream(Named.`as`("aggout-merger"))
+
+                myAggregate1
+                    .print(Printed.toSysOut<String?, Event?>().withLabel("Specific-agg"))
+
+                myAggregate1
+                    .to(config.writeTopic, Produced.with(Serdes.String(), eventSerde))
+
+//                        .toStream( Produced.with(Serdes.String(), eventSerde), Named.`as`("aggmout-merger"))
+//                myAggregate1
+//                    .print(Printed.toSysOut<String?, Event.Aggregate?>().withLabel("Specific-agg"))
             }
 
             if (false) {
@@ -175,15 +216,17 @@ class KafkaProcessor(
                     .print(Printed.toSysOut<String?, Long?>().withLabel("Generic-count"))
             }
 
-            val streams = KafkaStreams(streamsBuilder.build(), streamProperties)
+            val topology = streamsBuilder.build()
 
-            streams.setUncaughtExceptionHandler(
-                StreamsUncaughtExceptionHandler { e ->
-                    logger.error(e) { "Streams crashed" }
-                    running.set(false)
-                    StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.SHUTDOWN_APPLICATION
-                },
-            )
+            print(topology.describe())
+
+            val streams = KafkaStreams(topology, streamProperties)
+
+            streams.setUncaughtExceptionHandler { e ->
+                logger.error(e) { "Streams crashed" }
+                running.set(false)
+                StreamsUncaughtExceptionHandler.StreamThreadExceptionResponse.SHUTDOWN_APPLICATION
+            }
 
             streams.setStateListener { newState, oldState ->
                 logger.info { "Streams state $oldState -> $newState" }

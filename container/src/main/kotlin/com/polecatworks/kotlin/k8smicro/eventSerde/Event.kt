@@ -40,6 +40,15 @@ sealed class Event {
         val previous: Long?,
     ) : Event()
 
+    @Serializable
+    @SerialName("com.polecatworks.chaser.Aggregate")
+    data class Aggregate(
+        val names: List<String>,
+        val count: Long,
+        val latest: Long?,
+        val longest: Long?,
+    ) : Event()
+
     companion object {
         fun subClasses(): List<KClass<out Event>> = Event::class.sealedSubclasses
     }
