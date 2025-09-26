@@ -16,8 +16,10 @@ import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.common.serialization.Serdes.Long
+import org.apache.kafka.common.utils.Bytes
 import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.KeyValue
+import org.apache.kafka.streams.StoreQueryParameters
 import org.apache.kafka.streams.StreamsBuilder
 import org.apache.kafka.streams.StreamsConfig
 import org.apache.kafka.streams.errors.StreamsUncaughtExceptionHandler
@@ -27,6 +29,9 @@ import org.apache.kafka.streams.kstream.Materialized
 import org.apache.kafka.streams.kstream.Named
 import org.apache.kafka.streams.kstream.Printed
 import org.apache.kafka.streams.kstream.Produced
+import org.apache.kafka.streams.state.KeyValueStore
+import org.apache.kafka.streams.state.QueryableStoreTypes
+import org.apache.kafka.streams.state.ReadOnlyKeyValueStore
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
@@ -58,6 +63,9 @@ class KafkaProcessor(
 
 //    val chaserSchema = Avro.schema<Chaser>()
     var chaserId: Int? = null
+
+    private val aggregateStoreName = "aggregate-store"
+    private var streamsInstance: KafkaStreams? = null
 
     suspend fun start() =
         coroutineScope {
@@ -155,9 +163,9 @@ class KafkaProcessor(
                 val myAggregate1 =
                     mystream1Specific
                         .groupByKey()
-                        .aggregate<Event?>(
+                        .aggregate<Event>(
                             { Event.Aggregate(listOf(), 1, null, null) as Event },
-                            { k, v, agg ->
+                            { k: String, v: Event, agg: Event ->
                                 val value =
                                     when (v) {
                                         is Event.Aggregate -> v
@@ -176,7 +184,10 @@ class KafkaProcessor(
 
                                 Event.Aggregate(uniqueNames, count, latest, longest) as Event
                             },
-                            Materialized.with(Serdes.String(), eventSerde),
+                            Materialized
+                                .`as`<String, Event, KeyValueStore<Bytes, ByteArray>>(aggregateStoreName)
+                                .withKeySerde(Serdes.String())
+                                .withValueSerde(eventSerde),
                         ).toStream(Named.`as`("aggout-merger"))
 
                 myAggregate1
@@ -235,6 +246,7 @@ class KafkaProcessor(
             logger.info("Reading from input topic ${config.readTopic}")
 
             streams.start()
+            streamsInstance = streams
 
 //            .stream(config.readTopic, Consumed.with(Serdes.String(), Serdes.String()))
             // .print(Printed.toSysOut<String, String>().withLabel("input-stream"))
@@ -286,6 +298,7 @@ class KafkaProcessor(
                 }
             } finally {
                 streams.close(java.time.Duration.ofSeconds(10))
+                streamsInstance = null
                 logger.info("Ended kafka task")
             }
         }
@@ -316,5 +329,43 @@ class KafkaProcessor(
 
     init {
         println("Initialising Kafka Processor: $config")
+    }
+
+    fun getAggregate(key: String): Event? {
+        val localStreams = streamsInstance ?: return null
+        return try {
+            val store: ReadOnlyKeyValueStore<String, Event> =
+                localStreams.store(
+                    StoreQueryParameters.fromNameAndType(
+                        aggregateStoreName,
+                        QueryableStoreTypes.keyValueStore<String, Event>(),
+                    ),
+                )
+            store.get(key)
+        } catch (e: Exception) {
+            logger.warn(e) { "Aggregate store query failed for key=$key" }
+            null
+        }
+    }
+
+    fun getAllAggregateKeys(): List<String> {
+        val localStreams = streamsInstance ?: return emptyList()
+        return try {
+            val store =
+                localStreams.store(
+                    StoreQueryParameters.fromNameAndType(
+                        aggregateStoreName,
+                        QueryableStoreTypes.keyValueStore<String, Event>(),
+                    ),
+                )
+            val keys = mutableListOf<String>()
+
+            store.all().forEach { keys.add(it.key) }
+
+            keys
+        } catch (e: Exception) {
+            logger.warn(e) { "Aggregate store keys query failed" }
+            emptyList()
+        }
     }
 }

@@ -125,4 +125,8 @@ class AppService(
         running.set(false)
         logger.info("App Service: Set to stop")
     }
+
+    fun getAggregate(key: String) = kafkaProcessor.getAggregate(key)
+
+    fun getAllAggregateKeys(): List<String> = kafkaProcessor.getAllAggregateKeys()
 }
