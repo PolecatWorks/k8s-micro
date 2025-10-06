@@ -29,6 +29,7 @@ import org.apache.kafka.streams.kstream.Materialized
 import org.apache.kafka.streams.kstream.Named
 import org.apache.kafka.streams.kstream.Printed
 import org.apache.kafka.streams.kstream.Produced
+import org.apache.kafka.streams.state.KeyValueIterator
 import org.apache.kafka.streams.state.KeyValueStore
 import org.apache.kafka.streams.state.QueryableStoreTypes
 import org.apache.kafka.streams.state.ReadOnlyKeyValueStore
@@ -135,7 +136,7 @@ class KafkaProcessor(
             if (true) {
                 val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
                 eventSchemaManager.registerAllSchemas(config.readTopic)
-                val eventSerde = EventSerde<Event>()
+                val eventSerde = EventSerde()
 
                 eventSerde.setSchemaManager(eventSchemaManager)
 
@@ -351,7 +352,7 @@ class KafkaProcessor(
     fun getAllAggregateKeys(): List<String> {
         val localStreams = streamsInstance ?: return emptyList()
         return try {
-            val store =
+            val store: ReadOnlyKeyValueStore<String, Event> =
                 localStreams.store(
                     StoreQueryParameters.fromNameAndType(
                         aggregateStoreName,
@@ -359,9 +360,13 @@ class KafkaProcessor(
                     ),
                 )
             val keys = mutableListOf<String>()
-
-            store.all().forEach { keys.add(it.key) }
-
+            val iterator: KeyValueIterator<String, Event> = store.all()
+            iterator.use {
+                while (it.hasNext()) {
+                    val kv = it.next()
+                    keys.add(kv.key)
+                }
+            }
             keys
         } catch (e: Exception) {
             logger.warn(e) { "Aggregate store keys query failed" }

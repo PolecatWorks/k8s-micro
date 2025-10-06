@@ -11,10 +11,10 @@ import org.apache.kafka.common.serialization.Serializer
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 
-class EventSerde<T : Event> :
-    Serializer<T?>,
-    Deserializer<T?>,
-    Serde<T?>,
+class EventSerde :
+    Serializer<Event?>,
+    Deserializer<Event?>,
+    Serde<Event?>,
     Configurable {
     companion object {
         const val MAGIC_BYTE: Byte = 0x0
@@ -42,13 +42,13 @@ class EventSerde<T : Event> :
         TODO("Not yet implemented")
     }
 
-    override fun serializer(): Serializer<T?> = this
+    override fun serializer(): Serializer<Event?> = this
 
-    override fun deserializer(): Deserializer<T?>? = this
+    override fun deserializer(): Deserializer<Event?>? = this
 
     override fun serialize(
         topic: String?,
-        data: T?,
+        data: Event?,
     ): ByteArray? {
         if (topic == null) return null
         if (data == null) return null
@@ -81,7 +81,7 @@ class EventSerde<T : Event> :
     override fun deserialize(
         topic: String?,
         data: ByteArray?,
-    ): T? {
+    ): Event? {
         if (data == null) return null
         if (topic == null) return null
 
@@ -100,7 +100,9 @@ class EventSerde<T : Event> :
 
             val objBytes = data.sliceArray(EventDeSerializer.Companion.SCHEMA_ID_SIZE + 1..<data.size)
 
-            return Avro.decodeFromByteArray(deserializer, objBytes) as T
+            val decoded: Any = Avro.decodeFromByteArray(deserializer, objBytes)
+            if (decoded is Event) return decoded
+            throw SerializationException("Decoded type ${'$'}{decoded::class} is not an Event")
         } catch (e: Exception) {
             throw SerializationException("Deserialisation error: $e")
         }

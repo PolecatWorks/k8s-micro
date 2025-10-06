@@ -191,6 +191,7 @@ class Avro4k {
             is Event.Burger -> println("BURGER")
             is Event.Pizza -> println("PIZZA")
             is Event.Chaser -> println("Chaser")
+            is Event.Aggregate -> println("Aggregate")
         }
 
         println("food = $myFood")
