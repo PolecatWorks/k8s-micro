@@ -1,39 +1,29 @@
 # https://codefresh.io/blog/java_docker_pipeline/
-ARG JAVA_VERSION=19
 ARG VERSION=2.0.0
 ARG CHANGELIST=-SNAPSHOT
 
-FROM eclipse-temurin:${JAVA_VERSION} AS java-build
-# ----
-# Install Maven
-ARG USER_HOME_DIR="/root"
-ARG MAVEN_VERSION=3.9.9
+ARG MAVEN_VERSION=3-eclipse-temurin-25
 
-RUN mkdir -p /usr/share/maven && \
-  curl -fsSL http://apache.osuosl.org/maven/maven-3/$MAVEN_VERSION/binaries/apache-maven-$MAVEN_VERSION-bin.tar.gz | tar -xzC /usr/share/maven --strip-components=1 && \
-  ln -s /usr/share/maven/bin/mvn /usr/bin/mvn
-ENV MAVEN_HOME=/usr/share/maven
-ENV MAVEN_CONFIG="$USER_HOME_DIR/.m2"
+FROM maven:${MAVEN_VERSION} AS java-build
+
+
 # speed up Maven JVM a bit
-ENV MAVEN_OPTS="-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
+# ENV MAVEN_OPTS="-XX:+TieredCompilation -XX:TieredStopAtLevel=1"
 # ENTRYPOINT ["/usr/bin/mvn"]
 # ----
 # Install project dependencies and keep sources
 # make source folder
-RUN mkdir -p /usr/src/app
-WORKDIR /usr/src/app
-# install maven dependency packages (keep in image)
 COPY pom.xml ./
-RUN mvn -T 1C install && rm -rf target
+RUN --mount=type=cache,target=/root/.m2 mvn -T 1C install && rm -rf target
 # copy other source files (keep in image)
 COPY src ./src/
 ARG VERSION
 ARG CHANGELIST
-RUN mvn verify -Dversion=${VERSION} -Dchangelist=${CHANGELIST}
+RUN --mount=type=cache,target=/root/.m2 mvn verify -Dversion=${VERSION} -Dchangelist=${CHANGELIST}
 RUN jar --file=target/k8s-micro-${VERSION}${CHANGELIST}-jar-with-dependencies.jar --describe-module > modules.txt
 
 
-FROM eclipse-temurin:${JAVA_VERSION} AS jre-build
+FROM maven:${MAVEN_VERSION} AS jre-build
 # https://hub.docker.com/_/eclipse-temurin
 
 # Create a custom Java runtime
@@ -130,7 +120,7 @@ COPY --from=jre-build /javaruntime $JAVA_HOME
 
 # # Continue with your application deployment
 RUN mkdir /opt/app
-COPY  --from=java-build /usr/src/app/target/k8s-micro-${VERSION}${CHANGELIST}-jar-with-dependencies.jar /opt/app/k8s-micro.jar
-COPY --from=java-build /usr/src/app/modules.txt /opt/app/
+COPY  --from=java-build /target/k8s-micro-${VERSION}${CHANGELIST}-jar-with-dependencies.jar /opt/app/k8s-micro.jar
+COPY --from=java-build /modules.txt /opt/app/
 EXPOSE 8080/tcp
 ENTRYPOINT ["java", "-jar", "/opt/app/k8s-micro.jar"]

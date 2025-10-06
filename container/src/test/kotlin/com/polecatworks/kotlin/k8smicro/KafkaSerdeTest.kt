@@ -24,7 +24,7 @@ import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 
 class KafkaSerdeTest {
-    val schemaMap = mapOf("Pizza" to 1, "Burger" to 2, "Chaser" to 3)
+    val schemaMap = mapOf("Pizza" to 1, "Burger" to 2, "Chaser" to 3, "Aggregate" to 4)
 
     // 1. Create a Margherita Pizza object
     val margherita =
@@ -41,23 +41,23 @@ class KafkaSerdeTest {
             kcals = 800,
         )
 
-    val burger =
-        Event.Burger(
-            name = "CheeseBurger",
-            ingredients =
-                listOf(
-                    Ingredient("Bread", 3.0, 5.0),
-                    Ingredient("Meat", 8.0, 1.0),
-                ),
-            kcals = 200,
-        )
+//    val burger =
+//        Event.Burger(
+//            name = "CheeseBurger",
+//            ingredients =
+//                listOf(
+//                    Ingredient("Bread", 3.0, 5.0),
+//                    Ingredient("Meat", 8.0, 1.0),
+//                ),
+//            kcals = 200,
+//        )
 
-    val schmeaConfig = KafkaSchemaRegistryConfig(schemaRegistryUrl, 60.seconds)
+    val schemaConfig = KafkaSchemaRegistryConfig(schemaRegistryUrl, 60.seconds)
     val mockEngine =
         MockEngine { request ->
             println(request)
-            when (request.url.encodedPath) {
-                "/config" -> {
+            when {
+                request.url.encodedPath == "/config" -> {
                     respond(
                         content = ByteReadChannel("""{"compatibilityLevel": "FULL"}"""),
                         status = HttpStatusCode.OK,
@@ -65,14 +65,15 @@ class KafkaSerdeTest {
                     )
                 }
 
-                "/subjects/test001-value/versions" -> {
+//                request.url.encodedPath.matches(Regex("\\\\/subjects\\\\/test001-value-com\\.polecatworks\\.chaser\\..*\\\\/versions")) -> {
+                request.url.encodedPath.matches(Regex("/subjects/test001-value-com.*/versions")) -> {
 
                     val body = Json.parseToJsonElement(request.body.toByteArray().decodeToString()).jsonObject
 
                     val schema =
                         when (val value = body["schema"]) {
                             is JsonPrimitive -> value.content
-                            else -> ""
+                            else -> throw IllegalArgumentException("schema not defined in request")
                         }
 
                     val schemaContent = Json.parseToJsonElement(schema).jsonObject
@@ -80,10 +81,10 @@ class KafkaSerdeTest {
                     val schemaName =
                         when (val value = schemaContent["name"]) {
                             is JsonPrimitive -> value.content
-                            else -> ""
+                            else -> throw IllegalArgumentException("name not defined in request")
                         }
 
-                    val schemaId = schemaMap[schemaName]
+                    val schemaId = schemaMap[schemaName]!!
 
                     respond(
                         content = ByteReadChannel("""{"id": $schemaId}"""),
@@ -104,7 +105,7 @@ class KafkaSerdeTest {
     val health = HealthSystem()
 
     val schemaRegistryApi =
-        KafkaSchemaRegistryApi(schmeaConfig, mockEngine, health, running)
+        KafkaSchemaRegistryApi(schemaConfig, mockEngine, health, running)
 
     @Test
     fun basicTrigger() {
@@ -118,10 +119,10 @@ class KafkaSerdeTest {
             eventSchemaManager.registerAllSchemas("test001-value")
         }
 
-        val serde = EventSerde<Event>(eventSchemaManager)
+        val serde = EventSerde()
         val serialized = serde.serializer().serialize("test001-value", margherita)
 
-        val deserialized = serde.deserializer().deserialize("test001-value", serialized)
+        val deserialized = serde.deserializer()!!.deserialize("test001-value", serialized)
         assert(margherita == deserialized) { "Deserialized event does not match original" }
     }
 
@@ -132,12 +133,14 @@ class KafkaSerdeTest {
             eventSchemaManager.registerAllSchemas("test001-value")
         }
 
-        val myChaser = Event.Chaser("Peachock", "id0", 123, 22, null)
+        val myChaser = Event.Chaser("Peacock", "id0", 123, 22, null)
 
-        val serde = EventSerde<Event>(eventSchemaManager)
+        val serde = EventSerde()
+        serde.setSchemaManager(eventSchemaManager)
+
         val serialized = serde.serializer().serialize("test001-value", myChaser)
 
-        val deserialized = serde.deserializer().deserialize("test001-value", serialized)
+        val deserialized = serde.deserializer()!!.deserialize("test001-value", serialized)
         assert(myChaser == deserialized) { "Deserialized event does not match original" }
 
         val genericAvroSerde = GenericAvroSerde()
