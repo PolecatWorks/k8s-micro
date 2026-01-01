@@ -1,13 +1,15 @@
 package com.polecatworks.kotlin.k8smicro
 
-import kotlinx.serialization.*
+import kotlinx.serialization.KSerializer
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import kotlinx.serialization.descriptors.PrimitiveKind
 import kotlinx.serialization.descriptors.PrimitiveSerialDescriptor
 import kotlinx.serialization.descriptors.SerialDescriptor
 import kotlinx.serialization.encoding.Decoder
 import kotlinx.serialization.encoding.Encoder
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.Json.Default.encodeToString
+import kotlinx.serialization.serializer
 import org.junit.Test
 
 class SerialisationTest {
@@ -20,12 +22,17 @@ class SerialisationTest {
 
     @Serializable
     @SerialName("Color")
-    class Color(val rgb: Int)
+    class Color(
+        val rgb: Int,
+    )
 
     object ColorAsStringSerializer : KSerializer<Color2> {
         override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Color2", PrimitiveKind.STRING)
 
-        override fun serialize(encoder: Encoder, value: Color2) {
+        override fun serialize(
+            encoder: Encoder,
+            value: Color2,
+        ) {
             val string = value.rgb.toString(16).padStart(6, '0')
             encoder.encodeString(string)
         }
@@ -37,7 +44,9 @@ class SerialisationTest {
     }
 
     @Serializable(with = ColorAsStringSerializer::class)
-    class Color2(val rgb: Int)
+    class Color2(
+        val rgb: Int,
+    )
 
     @Test
     fun testSimpleSerialisation() {

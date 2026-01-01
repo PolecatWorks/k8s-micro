@@ -2,8 +2,6 @@ package com.polecatworks.kotlin.k8smicro
 
 import com.polecatworks.kotlin.k8smicro.health.AliveMarginCheck
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
-import com.sksamuel.hoplite.ConfigLoaderBuilder
-import com.sksamuel.hoplite.addFileSource
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -12,7 +10,6 @@ import org.jetbrains.exposed.exceptions.ExposedSQLException
 import org.jetbrains.exposed.sql.Database
 import org.jetbrains.exposed.sql.transactions.TransactionManager
 import org.jetbrains.exposed.sql.transactions.transaction
-import java.nio.file.Path
 import java.sql.ResultSet
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
@@ -20,7 +17,6 @@ import kotlin.time.ExperimentalTime
 import kotlin.time.TimeSource
 
 private val logger = KotlinLogging.logger {}
-
 
 data class SqlServerDatabase(
     val url: String,
@@ -44,46 +40,47 @@ data class SqlServerConfig(
 class SqlServer(
     private val config: SqlServerConfig,
     val health: HealthSystem,
-    val running: AtomicBoolean
+    val running: AtomicBoolean,
 ) {
     val database = Database
 
     @OptIn(ExperimentalTime::class)
-    suspend fun start() = coroutineScope {
-        logger.info("Starting Sql")
-        val myAlive = AliveMarginCheck("SQL Server", config.healthSleep, false)
-        health.registerAlive(myAlive)
+    suspend fun start() =
+        coroutineScope {
+            logger.info("Starting Sql")
+            val myAlive = AliveMarginCheck("SQL Server", config.healthSleep, false)
+            health.registerAlive(myAlive)
 
-        database.connect(
-            url = config.database.url,
-            driver = config.driver,
-            user = config.database.username,
-            password = config.database.password
-        ) // Does not actually connect. Just stores the connection info
+            database.connect(
+                url = config.database.url,
+                driver = config.driver,
+                user = config.database.username,
+                password = config.database.password,
+            ) // Does not actually connect. Just stores the connection info
 
-        launch {
-            var checkinTime = TimeSource.Monotonic.markNow() // Start out immediately
-            while (running.get()) {
-                val timeNow = TimeSource.Monotonic.markNow()
-                if (checkinTime < timeNow) {
-                    if (checkConnection()) {
-                        logger.info("Confirmed connection to SQL Server")
-                        myAlive.kick()
-                        checkinTime = timeNow + config.healthSleep - config.threadSleep * 2
-                    } else {
-                        logger.warn("Cannot connect to SQL Server")
+            launch {
+                var checkinTime = TimeSource.Monotonic.markNow() // Start out immediately
+                while (running.get()) {
+                    val timeNow = TimeSource.Monotonic.markNow()
+                    if (checkinTime < timeNow) {
+                        if (checkConnection()) {
+                            logger.info("Confirmed connection to SQL Server")
+                            myAlive.kick()
+                            checkinTime = timeNow + config.healthSleep - config.threadSleep * 2
+                        } else {
+                            logger.warn("Cannot connect to SQL Server")
+                        }
                     }
+                    delay(config.threadSleep)
                 }
-                delay(config.threadSleep)
+                running.set(false)
+                health.deregisterAlive(myAlive) // TODO: Consider to not deregister and leave the liveness in place
+                logger.info("Stopped alive check on SQL Server")
             }
-            running.set(false)
-            health.deregisterAlive(myAlive) // TODO: Consider to not deregister and leave the liveness in place
-            logger.info("Stopped alive check on SQL Server")
         }
-    }
 
     private suspend fun checkConnection(): Boolean {
-        var valid_connection = false
+        var validConnection = false
         try {
             transaction {
                 // addLogger(StdOutSqlLogger)
@@ -92,7 +89,7 @@ class SqlServer(
                 "select 1=1 as alive".execAndMap { rs ->
                     "alive" to rs.getBoolean("alive")
                 }
-                valid_connection = true
+                validConnection = true
                 println("DB Connection achieved")
             }
         } catch (e: ExposedSQLException) {
@@ -100,7 +97,7 @@ class SqlServer(
         } catch (e: Exception) {
             println("Did not get connection to DB")
         }
-        return valid_connection
+        return validConnection
     }
 }
 

@@ -1,23 +1,33 @@
 package com.polecatworks.kotlin.k8smicro.utils
 
-import com.sksamuel.hoplite.*
+import com.sksamuel.hoplite.ConfigResult
+import com.sksamuel.hoplite.DecoderContext
+import com.sksamuel.hoplite.Node
+import com.sksamuel.hoplite.PrimitiveNode
+import com.sksamuel.hoplite.StringNode
 import com.sksamuel.hoplite.fp.valid
 import com.sksamuel.hoplite.preprocessor.TraversingPrimitivePreprocessor
 import java.nio.file.Path
 import kotlin.io.path.readText
 
-class SecretFilesPreProcessor(private val basePath: Path): TraversingPrimitivePreprocessor() {
-    override fun handle(node: PrimitiveNode, context: DecoderContext): ConfigResult<Node> = when (node) {
-        is StringNode -> {
-            val value = regex.replace(node.value) {
-                val key = it.groupValues[1]
-                basePath.resolve(key).readText()
+class SecretFilesPreProcessor(
+    private val basePath: Path,
+) : TraversingPrimitivePreprocessor() {
+    override fun handle(
+        node: PrimitiveNode,
+        context: DecoderContext,
+    ): ConfigResult<Node> =
+        when (node) {
+            is StringNode -> {
+                val value =
+                    regex.replace(node.value) {
+                        val key = it.groupValues[1]
+                        basePath.resolve(key).readText()
+                    }
+                node.copy(value).valid()
             }
-            node.copy(value).valid()
+            else -> node.valid()
         }
-        else -> node.valid()
-    }
-
 
     // Redundant escaping required for Android support.
     private val regex = "\\$\\{(.*?)\\}".toRegex()

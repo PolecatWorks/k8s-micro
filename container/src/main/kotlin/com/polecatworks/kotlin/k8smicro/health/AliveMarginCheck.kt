@@ -8,19 +8,26 @@ import kotlin.time.TimeSource.Monotonic.ValueTimeMark
 import kotlin.time.TimeSource.Monotonic.markNow
 
 @Serializable
-data class HealthCheckResult(val name: String, val valid: Boolean)
+data class HealthCheckResult(
+    val name: String,
+    val valid: Boolean,
+)
 
 @OptIn(ExperimentalTime::class)
 interface IHealthCheck {
     val name: String
+
     abstract fun checkValid(time: ValueTimeMark): Boolean
-    fun check(time: ValueTimeMark): HealthCheckResult {
-        return HealthCheckResult(name, checkValid(time))
-    }
+
+    fun check(time: ValueTimeMark): HealthCheckResult = HealthCheckResult(name, checkValid(time))
 }
 
 @OptIn(ExperimentalTime::class)
-class AliveMarginCheck(override val name: String, val margin: Duration, default: Boolean = true) : IHealthCheck {
+class AliveMarginCheck(
+    override val name: String,
+    val margin: Duration,
+    default: Boolean = true,
+) : IHealthCheck {
     var latest = if (default) markNow() else markNow() - margin
 
     fun kick() {
@@ -30,34 +37,28 @@ class AliveMarginCheck(override val name: String, val margin: Duration, default:
 //    override fun check(time: ValueTimeMark): HealthCheckResult {
 //        return HealthCheckResult(name, checkValid(time))
 //    }
-    override fun checkValid(time: ValueTimeMark): Boolean {
-        return latest.plus(margin) >= time
-    }
+    override fun checkValid(time: ValueTimeMark): Boolean = latest.plus(margin) >= time
 }
 
-class ReadyStateCheck(override val name: String) : IHealthCheck {
+class ReadyStateCheck(
+    override val name: String,
+) : IHealthCheck {
     var state = AtomicBoolean(false)
 
     /**
      * Set to busy and return true if state change occurred
      */
-    fun busy(): Boolean {
-        return state.getAndSet(false)
-    }
+    fun busy(): Boolean = state.getAndSet(false)
 
     /**
      * Set to ready and return true if state change occurred
      */
-    fun ready(): Boolean {
-        return !state.getAndSet(true)
-    }
+    fun ready(): Boolean = !state.getAndSet(true)
 
 //    override fun check(time: ValueTimeMark): HealthCheckResult {
 //        return HealthCheckResult(name, state.get())
 //    }
 
     @ExperimentalTime
-    override fun checkValid(time: ValueTimeMark): Boolean {
-        return state.get()
-    }
+    override fun checkValid(time: ValueTimeMark): Boolean = state.get()
 }

@@ -4,7 +4,7 @@ repos:
       hooks:
           - id: check-yaml
             args: [--allow-multiple-documents]
-            exclude: ^helm/
+            exclude: ^chart/
           - id: end-of-file-fixer
             exclude: ^.idea/
           - id: trailing-whitespace

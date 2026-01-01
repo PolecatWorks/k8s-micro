@@ -2,14 +2,12 @@ package com.polecatworks.kotlin.k8smicro
 
 import com.polecatworks.kotlin.k8smicro.app.AppService
 import com.polecatworks.kotlin.k8smicro.app.configureAppRouting
-import io.ktor.client.call.*
-import io.ktor.client.request.*
-import io.ktor.client.statement.*
-import io.ktor.http.*
-import io.ktor.serialization.kotlinx.json.*
-import io.ktor.server.application.*
-import io.ktor.server.plugins.contentnegotiation.*
-import io.ktor.server.testing.*
+import io.ktor.client.request.get
+import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.application.install
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
+import io.ktor.server.testing.testApplication
 import io.mockk.every
 import io.mockk.mockk
 import org.junit.Test

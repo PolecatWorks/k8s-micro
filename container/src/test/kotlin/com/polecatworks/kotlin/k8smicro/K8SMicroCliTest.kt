@@ -9,7 +9,6 @@ import kotlin.time.Duration.Companion.milliseconds
 import kotlin.time.Duration.Companion.seconds
 
 class K8SMicroCliTest {
-
     @Test
     fun testHello() {
         println("I am a useless test")
@@ -17,13 +16,16 @@ class K8SMicroCliTest {
 
     @Test
     fun testCoroutine() {
-        runBlocking { // this: CoroutineScope
+        runBlocking {
+            // this: CoroutineScope
             coroutineScope {
-                launch { // launch a new coroutine and continue
+                launch {
+                    // launch a new coroutine and continue
                     delay(1.seconds) // non-blocking delay for 1 second (default time unit is ms)
                     println("World!") // print after delay
                 }
-                launch { // launch a new coroutine and continue
+                launch {
+                    // launch a new coroutine and continue
                     delay(500.milliseconds) // non-blocking delay for 1 second (default time unit is ms)
                     println("World ish!") // print after delay
                 }
