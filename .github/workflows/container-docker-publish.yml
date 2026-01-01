@@ -21,6 +21,8 @@ concurrency:
 jobs:
   check-paths:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       container: ${{ steps.filter.outputs.container }}
     steps:
@@ -259,6 +261,7 @@ jobs:
     needs: [check-paths, merge]
     if: always()
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Check Status
         run: |

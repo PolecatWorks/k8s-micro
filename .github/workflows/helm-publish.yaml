@@ -16,6 +16,8 @@ concurrency:
 jobs:
   check-paths:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     outputs:
       charts: ${{ steps.filter.outputs.charts }}
     steps:
@@ -32,6 +34,8 @@ jobs:
     needs: check-paths
     if: needs.check-paths.outputs.charts == 'true' && github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
     steps:
       - uses: actions/checkout@v4
       - uses: azure/setup-helm@v4.2.0
@@ -84,6 +88,7 @@ jobs:
     needs: [check-paths, lint, publish]
     if: always()
     runs-on: ubuntu-latest
+    permissions: {}
     steps:
       - name: Check Status
         run: |
