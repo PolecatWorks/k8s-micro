@@ -1,38 +1,56 @@
-name: Helm
-
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
+name: Helm CI
 
 on:
   push:
-    branches: [ "main" ]
-    # Publish semver tags as releases.
-    tags: [ 'v*.*.*' ]
-    paths:
-      - 'chart/**'
-  # pull_request:
-  #   branches: [ "main" ]
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
 
 env:
-  # Use docker.io for Docker Hub if empty
   REGISTRY: ghcr.io
-  # github.repository as <account>/<repo>
-  IMAGE_NAME: ${{ github.repository }}
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  check-paths:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      charts: ${{ steps.filter.outputs.charts }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            charts:
+              - 'chart/**'
+              - '.github/workflows/helm-publish.yaml'
 
+  lint:
+    needs: check-paths
+    if: needs.check-paths.outputs.charts == 'true' && github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4.2.0
+
+      - name: Lint k8s-micro
+        run: helm lint chart/k8s-micro
+
+  publish:
+    needs: check-paths
+    if: needs.check-paths.outputs.charts == 'true' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
-      # This is used to complete the identity challenge
-      # with sigstore/fulcio when running outside of PRs.
       id-token: write
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -43,22 +61,49 @@ jobs:
           SHORTER_REPO=${GITHUB_REPOSITORY%:*}
           echo "repository=${SHORTER_REPO@L}" >> $GITHUB_OUTPUT
 
-      - name: Push Helm chart to OCI compatible registry (Github)
-        uses: bsord/helm-push@v4.1.0
+      - name: Get Short SHA
+        id: vars
+        run: echo "sha_short=$(git rev-parse --short HEAD)" >> $GITHUB_OUTPUT
+
+      - name: Update Chart Versions
+        run: |
+          suffix="-dev-${{ steps.vars.outputs.sha_short }}"
+          sed -i "s/^version: .*/&${suffix}/" chart/k8s-micro/Chart.yaml
+
+          echo "Updated K8s Micro Version:"
+          grep "^version:" chart/k8s-micro/Chart.yaml
+
+      - name: Push Helm chart to OCI for k8s-micro
+        uses: bsord/helm-push@v4
         with:
           chart-folder: chart/k8s-micro
           useOCIRegistry: true
-          # registry-url:  oci://ghcr.io/${{ github.repository }}-helm
-          registry-url:  oci://ghcr.io/${{ steps.lower-repo.outputs.repository }}/helm
+          registry-url: oci://ghcr.io/${{ steps.lower-repo.outputs.repository }}/helm
           username: ${{ github.actor }}
           access-token: ${{ secrets.GITHUB_TOKEN }}
           force: true
 
-      # - name: Helm Publish Action
-      #   uses: huggingface/helm-publish-action@latest
-      #   with:
-      #     workingDirectory: charts
-      #     repository: oci://ghcr.io/${{ github.repository }}
-      #     username: ${{ github.actor }}
-      #     password: ${{ secrets.GITHUB_TOKEN }}
-      #     beforeHook: cd subcharts/my-sub-chart && helm dependencies update
+  ci-success:
+    name: Helm CI Success
+    needs: [check-paths, lint, publish]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Check Status
+        run: |
+          # If charts changed, check if the relevant job succeeded
+          if [[ "${{ needs.check-paths.outputs.charts }}" == 'true' ]]; then
+            if [[ "${{ github.event_name }}" == 'pull_request' ]]; then
+               if [[ "${{ needs.lint.result }}" != 'success' ]]; then
+                 echo "Lint failed!"
+                 exit 1
+               fi
+            else
+               if [[ "${{ needs.publish.result }}" != 'success' ]]; then
+                 echo "Publish failed!"
+                 exit 1
+               fi
+            fi
+          fi
+          echo "Success!"
