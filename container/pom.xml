@@ -49,6 +49,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
         <!-- https://github.com/LukasForst/ktor-openapi-generator -->
 <!--        <dependency>-->
 <!--            <groupId>dev.forst</groupId>-->
@@ -130,13 +131,6 @@
             <groupId>io.ktor</groupId>
             <artifactId>ktor-serialization-kotlinx-json-jvm</artifactId>
             <version>${ktor_version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-            </exclusions>
-
         </dependency>
         <dependency>
             <groupId>io.github.microutils</groupId>

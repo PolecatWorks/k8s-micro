@@ -28,7 +28,7 @@ FROM maven:${MAVEN_VERSION} AS jre-build
 
 # Create a custom Java runtime
 RUN $JAVA_HOME/bin/jlink \
-         --add-modules java.base,com.fasterxml.jackson.annotation \
+         --add-modules java.base,java.naming,java.desktop,java.sql,java.management \
          --strip-debug \
          --no-man-pages \
          --no-header-files \
