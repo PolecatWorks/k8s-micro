@@ -13,7 +13,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <kotlin.version>2.2.10</kotlin.version>
+        <kotlin.version>2.3.0</kotlin.version>
         <kotlin.code.style>official</kotlin.code.style>
 
         <junit.version>4.13.2</junit.version>
@@ -24,8 +24,8 @@
         <mockk.version>1.13.3</mockk.version>
         <exposed_version>0.41.1</exposed_version>
         <prometheus_version>1.10.2</prometheus_version>
-        <java.version>19</java.version>
-        <kotlin.compiler.jvmTarget>19</kotlin.compiler.jvmTarget>
+        <java.version>25</java.version>
+        <kotlin.compiler.jvmTarget>25</kotlin.compiler.jvmTarget>
         <main.class>com.polecatworks.kotlin.k8smicro.K8sMicroCliKt</main.class>
     </properties>
 

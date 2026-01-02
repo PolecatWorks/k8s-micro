@@ -24,7 +24,7 @@ The objective is to provide:
 * [x] OpenAPI (https://ktor.io/docs/openapi.html)
 * [x] git good practices (pre-commit, etc)
 * [x] Modern JDK11
-* [x] JDK19
+* [x] JDK25
 * [x] Coroutines
 * [ ] KTOR development mode (https://ktor.io/docs/auto-reload.html#watch-paths)
 * [x] License
@@ -66,14 +66,14 @@ BUT on confirmation this does not work as it is required for the images to be pu
 
 This repo uses the following dependencies:
 [![pre-commit](https://img.shields.io/badge/pre--commit-enabled-brightgreen?logo=pre-commit)](https://github.com/pre-commit/pre-commit)
-[![Kotlin Badge](https://img.shields.io/badge/Kotlin-7F52FF?logo=kotlin&logoColor=fff&style=flat-square)](https://kotlinlang.org)
+[![Kotlin Badge](https://img.shields.io/badge/Kotlin-2.3.0-7F52FF?logo=kotlin&logoColor=fff&style=flat-square)](https://kotlinlang.org)
 [![Prometheus Badge](https://img.shields.io/badge/Prometheus-E6522C?logo=prometheus&logoColor=fff&style=flat-square)](https://prometheus.io)
 [![Docker Badge](https://img.shields.io/badge/Docker-2496ED?logo=docker&logoColor=fff&style=flat-square)](https://www.docker.com)
 [![OpenJDK Badge](https://img.shields.io/badge/OpenJDK-FFF?logo=openjdk&logoColor=000&style=flat-square)](https://openjdk.org)
 [![Apache Maven Badge](https://img.shields.io/badge/Apache%20Maven-C71A36?logo=apachemaven&logoColor=fff&style=flat-square)](https://maven.apache.org)
 [![GitHub Badge](https://img.shields.io/badge/GitHub-181717?logo=github&logoColor=fff&style=flat-square)](https://github.com)
 
-* JDK11: eclipse-temurin:11
+* JDK25: eclipse-temurin:25
 * KTOR
 * Hoplite
 * Clikt
