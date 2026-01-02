@@ -24,8 +24,8 @@
         <mockk.version>1.13.3</mockk.version>
         <exposed_version>0.41.1</exposed_version>
         <prometheus_version>1.10.2</prometheus_version>
-        <java.version>21</java.version>
-        <kotlin.compiler.jvmTarget>21</kotlin.compiler.jvmTarget>
+        <java.version>24</java.version>
+        <kotlin.compiler.jvmTarget>24</kotlin.compiler.jvmTarget>
         <main.class>com.polecatworks.kotlin.k8smicro.K8sMicroCliKt</main.class>
     </properties>
 

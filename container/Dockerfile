@@ -2,7 +2,7 @@
 ARG VERSION=2.0.0
 ARG CHANGELIST=-SNAPSHOT
 
-ARG MAVEN_VERSION=3.9.6-eclipse-temurin-21
+ARG MAVEN_VERSION=3.9.6-eclipse-temurin-24
 
 FROM maven:${MAVEN_VERSION} AS java-build
 
