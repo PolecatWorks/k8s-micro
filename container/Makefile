@@ -53,7 +53,7 @@ topic-input-read:
 
 
 
-export JAVA_HOME = $(shell /usr/libexec/java_home -v 19.0.2)
+export JAVA_HOME = $(shell /usr/libexec/java_home -v 25)
 
 mvnversion:
 	@echo "Setting version to $(VERSION)$(BRANCHNAME)$(SHA)$(CHANGELIST)"
