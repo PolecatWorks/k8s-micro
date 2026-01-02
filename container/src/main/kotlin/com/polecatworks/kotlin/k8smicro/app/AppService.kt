@@ -9,7 +9,6 @@ import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import com.polecatworks.kotlin.k8smicro.health.ReadyStateCheck
 import io.ktor.client.HttpClient
 import io.ktor.client.call.body
-import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.request.get
 import io.ktor.serialization.kotlinx.json.json
 import io.ktor.server.application.install
@@ -17,7 +16,6 @@ import io.ktor.server.application.log
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.metrics.micrometer.MicrometerMetrics
 import io.ktor.server.plugins.calllogging.CallLogging
-import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
@@ -28,7 +26,9 @@ import java.net.InetAddress
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicInteger
 import io.ktor.client.engine.cio.CIO as CIO_CLIENT
+import io.ktor.client.plugins.contentnegotiation.ContentNegotiation as ClientContentNegotiation
 import io.ktor.server.cio.CIO as CIO_SERVER
+import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerContentNegotiation
 
 val logger = KotlinLogging.logger {}
 
@@ -53,7 +53,7 @@ class AppService(
             install(CallLogging) {
                 // level = Level.INFO
             }
-            install(ContentNegotiation) {
+            install(ServerContentNegotiation) {
                 json()
             }
             install(MicrometerMetrics) {
@@ -76,7 +76,7 @@ class AppService(
 
     private val httpClient =
         HttpClient(CIO_CLIENT.create()) {
-            install(ContentNegotiation) {
+            install(ClientContentNegotiation) {
                 json()
             }
         }
