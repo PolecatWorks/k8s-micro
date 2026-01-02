@@ -59,6 +59,7 @@ class KafkaProcessor(
     val health: HealthSystem,
     val engine: HttpClientEngine,
     val running: AtomicBoolean,
+    val applicationServer: String,
 ) {
     val schemaRegistryApi = KafkaSchemaRegistryApi(config.schemaRegistry, engine, health, running)
 
@@ -131,6 +132,7 @@ class KafkaProcessor(
                     AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to schemaRegistryApi.schemaRegistryUrl,
                     StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG to
                         org.apache.kafka.streams.errors.LogAndContinueExceptionHandler::class.java.name,
+                    StreamsConfig.APPLICATION_SERVER_CONFIG to applicationServer,
                 ).toProperties()
 
             if (true) {
@@ -371,6 +373,16 @@ class KafkaProcessor(
         } catch (e: Exception) {
             logger.warn(e) { "Aggregate store keys query failed" }
             emptyList()
+        }
+    }
+
+    fun getStoreMetaData(key: String): org.apache.kafka.streams.KeyQueryMetadata? {
+        val localStreams = streamsInstance ?: return null
+        return try {
+            localStreams.queryMetadataForKey(aggregateStoreName, key, Serdes.String().serializer())
+        } catch (e: Exception) {
+            logger.warn(e) { "Metadata query failed for key=$key" }
+            null
         }
     }
 }
