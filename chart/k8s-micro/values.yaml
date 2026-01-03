@@ -34,16 +34,7 @@ volumeMounts: &volume-mount
   - name: secrets
     mountPath: /opt/app/secrets
 
-configs: # Overrides merge into configs/config.yaml
-  kafkaProcessor:
-    applicationId: k8s-micro-app
-    bootstrapServers: localhost:9092
-    processingGuarantee: exactly_once_v2
-    autoOffsetReset: latest
-    # readTopic: input
-    # writeTopic: output
-    # taskSleepDuration: 10s
-    # querySleep: 15s
+configs: {} # Overrides merge into configs/config.yaml
 
 replicaCount: 1
 
