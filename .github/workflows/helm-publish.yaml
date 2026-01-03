@@ -45,7 +45,7 @@ jobs:
 
   publish:
     needs: check-paths
-    if: needs.check-paths.outputs.charts == 'true' && github.event_name == 'push'
+    if: needs.check-paths.outputs.charts == 'true'
     runs-on: ubuntu-latest
     permissions:
       contents: read
