@@ -27,7 +27,7 @@ jobs:
         with:
           filters: |
             charts:
-              - 'chart/**'
+              - 'charts/**'
               - '.github/workflows/helm-publish.yaml'
 
   lint:
@@ -41,7 +41,7 @@ jobs:
       - uses: azure/setup-helm@v4.2.0
 
       - name: Lint k8s-micro
-        run: helm lint chart/k8s-micro
+        run: helm lint charts/k8s-micro
 
   publish:
     needs: check-paths
@@ -72,15 +72,15 @@ jobs:
           else
             suffix="-dev-${{ steps.vars.outputs.sha_short }}"
           fi
-          sed -i "s/^version: .*/&${suffix}/" chart/k8s-micro/Chart.yaml
 
+          sed -i "s/^version: .*/&${suffix}/" charts/k8s-micro/Chart.yaml
           echo "Updated K8s Micro Version:"
-          grep "^version:" chart/k8s-micro/Chart.yaml
+          grep "^version:" charts/k8s-micro/Chart.yaml
 
       - name: Push Helm chart to OCI for k8s-micro
         uses: bsord/helm-push@v4
         with:
-          chart-folder: chart/k8s-micro
+          chart-folder: charts/k8s-micro
           useOCIRegistry: true
           registry-url: oci://ghcr.io/${{ steps.lower-repo.outputs.repository }}/helm
           username: ${{ github.actor }}
