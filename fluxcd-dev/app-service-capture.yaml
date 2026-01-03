@@ -24,7 +24,7 @@ spec:
       retries: 3
   values:
     image:
-      repository: ghcr.io/polecatworks/k8s-mico
+      repository: ghcr.io/polecatworks/k8s-micro
       tag: main
       pullPolicy: Always # Dev ONLY
     devsecops:
