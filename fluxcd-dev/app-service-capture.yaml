@@ -7,7 +7,8 @@ spec:
   interval: 10m
   url: oci://ghcr.io/polecatworks/k8s-micro/helm/k8s-micro
   ref:
-    tag: 0.0.0
+    semver: ">= 0.1.x-0"
+    semverFilter: .*-dev-*
 ---
 apiVersion: helm.toolkit.fluxcd.io/v2
 kind: HelmRelease
