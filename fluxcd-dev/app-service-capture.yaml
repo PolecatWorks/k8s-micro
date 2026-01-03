@@ -23,6 +23,7 @@ spec:
     remediation:
       retries: 3
   values:
+    secretName: db0-recon-user
     kafkaProcessor:
       bootstrapServers: kafka.confluent.svc.cluster.local:9092
       hostUrl: http://kafka.confluent.svc.cluster.local:9092
