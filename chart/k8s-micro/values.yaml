@@ -1,6 +1,3 @@
-
-
-
 env: {}
 
 args:
@@ -12,7 +9,7 @@ args:
 volumes: &volumes
   - name: configs
     configMap:
-      name: "{{ template \"k8s-micro.fullname\" . }}"
+      name: '{{ template "k8s-micro.fullname" . }}'
   - name: objects
     emptyDir:
       sizeLimit: 500Mi
@@ -20,14 +17,13 @@ volumes: &volumes
     projected:
       sources:
         - secret:
-            optional: true
-            name: "{{ .Values.secretName | default (include \"k8s-micro.fullname\" .) }}"
+            optional: false
+            name: '{{ .Values.secretName | default (include "k8s-micro.fullname" .) }}'
             items:
               - key: username
                 path: database/username
               - key: password
                 path: database/password
-
 
 volumeMounts: &volume-mount
   - name: configs
@@ -38,7 +34,7 @@ volumeMounts: &volume-mount
   - name: secrets
     mountPath: /opt/app/secrets
 
-configs:  # Overrides merge into configs/config.yaml
+configs: # Overrides merge into configs/config.yaml
   kafkaProcessor:
     applicationId: k8s-micro-app
     bootstrapServers: localhost:9092
@@ -48,7 +44,6 @@ configs:  # Overrides merge into configs/config.yaml
     # writeTopic: output
     # taskSleepDuration: 10s
     # querySleep: 15s
-
 
 replicaCount: 1
 
@@ -68,8 +63,6 @@ readinessProbe:
     port: http-health
     path: "/hams/ready"
   periodSeconds: 5
-
-
 
 image:
   repository: k8s-micro
@@ -104,7 +97,6 @@ securityContext: {}
 service:
   type: ClusterIP
   port: 80
-
 
 resources: {}
   # We usually recommend not to specify default resources and to leave this as a conscious
