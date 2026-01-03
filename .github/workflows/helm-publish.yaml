@@ -45,7 +45,7 @@ jobs:
 
   publish:
     needs: check-paths
-    # if: needs.check-paths.outputs.charts == 'true' && github.event_name == 'push'
+    if: needs.check-paths.outputs.charts == 'true' && github.event_name == 'push'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -67,7 +67,11 @@ jobs:
 
       - name: Update Chart Versions
         run: |
-          suffix="-dev-${{ steps.vars.outputs.sha_short }}"
+          if [[ "${{ github.ref_name }}" == "main" ]]; then
+            suffix="-main"
+          else
+            suffix="-dev-${{ steps.vars.outputs.sha_short }}"
+          fi
           sed -i "s/^version: .*/&${suffix}/" chart/k8s-micro/Chart.yaml
 
           echo "Updated K8s Micro Version:"
@@ -81,17 +85,6 @@ jobs:
           registry-url: oci://ghcr.io/${{ steps.lower-repo.outputs.repository }}/helm
           username: ${{ github.actor }}
           access-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push Helm chart to OCI for k8s-micro with main tag
-        uses: bsord/helm-push@v4
-        with:
-          chart-folder: chart/k8s-micro
-          useOCIRegistry: true
-          registry-url: oci://ghcr.io/${{ steps.lower-repo.outputs.repository }}/helm
-          username: ${{ github.actor }}
-          access-token: ${{ secrets.GITHUB_TOKEN }}
-          version: main # The additional tag you want
-          force: true
 
   ci-success:
     name: Helm CI Success
