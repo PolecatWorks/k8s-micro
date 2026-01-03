@@ -81,6 +81,16 @@ jobs:
           registry-url: oci://ghcr.io/${{ steps.lower-repo.outputs.repository }}/helm
           username: ${{ github.actor }}
           access-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push Helm chart to OCI for k8s-micro with main tag
+        uses: bsord/helm-push@v4
+        with:
+          chart-folder: chart/k8s-micro
+          useOCIRegistry: true
+          registry-url: oci://ghcr.io/${{ steps.lower-repo.outputs.repository }}/helm
+          username: ${{ github.actor }}
+          access-token: ${{ secrets.GITHUB_TOKEN }}
+          version: main # The additional tag you want
           force: true
 
   ci-success:
