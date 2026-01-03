@@ -24,8 +24,8 @@
         <mockk.version>1.13.3</mockk.version>
         <exposed_version>0.41.1</exposed_version>
         <prometheus_version>1.10.2</prometheus_version>
-        <java.version>19</java.version>
-        <kotlin.compiler.jvmTarget>19</kotlin.compiler.jvmTarget>
+        <java.version>24</java.version>
+        <kotlin.compiler.jvmTarget>24</kotlin.compiler.jvmTarget>
         <main.class>com.polecatworks.kotlin.k8smicro.K8sMicroCliKt</main.class>
     </properties>
 
@@ -49,6 +49,7 @@
                 </exclusion>
             </exclusions>
         </dependency>
+
         <!-- https://github.com/LukasForst/ktor-openapi-generator -->
 <!--        <dependency>-->
 <!--            <groupId>dev.forst</groupId>-->
@@ -130,13 +131,6 @@
             <groupId>io.ktor</groupId>
             <artifactId>ktor-serialization-kotlinx-json-jvm</artifactId>
             <version>${ktor_version}</version>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.slf4j</groupId>
-                    <artifactId>slf4j-api</artifactId>
-                </exclusion>
-            </exclusions>
-
         </dependency>
         <dependency>
             <groupId>io.github.microutils</groupId>
