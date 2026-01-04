@@ -30,29 +30,31 @@ private val log = KotlinLogging.logger {}
 
 fun Application.configureAppRouting(appService: AppService) {
     routing {
-        route("/hello", HttpMethod.Get) {
-            handle {
-                call.respondText("Hello back")
+        route(appService.myWebserver.prefix) {
+            route("/hello", HttpMethod.Get) {
+                handle {
+                    call.respondText("Hello back")
+                }
             }
-        }
 
-        get("/store/{key}") {
-            val key = call.parameters["key"]
-            if (key.isNullOrBlank()) {
-                call.respond(HttpStatusCode.BadRequest, "Missing key")
-                return@get
+            get("/store/{key}") {
+                val key = call.parameters["key"]
+                if (key.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, "Missing key")
+                    return@get
+                }
+                val value = appService.getAggregate(key)
+                if (value == null) {
+                    call.respond(HttpStatusCode.NotFound, "Not found")
+                } else {
+                    call.respond(value)
+                }
             }
-            val value = appService.getAggregate(key)
-            if (value == null) {
-                call.respond(HttpStatusCode.NotFound, "Not found")
-            } else {
-                call.respond(value)
-            }
-        }
 
-        get("/store") {
-            val keys = appService.getAllAggregateKeys()
-            call.respond(keys)
+            get("/store") {
+                val keys = appService.getAllAggregateKeys()
+                call.respond(keys)
+            }
         }
     }
 //    apiRouting {

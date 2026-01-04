@@ -72,6 +72,7 @@ class AppService(
 
     private val myHost = InetAddress.getLocalHost().hostName
     private val myPort = config.webserver.port
+    val myWebserver = config.webserver
     private val applicationServer = "$myHost:$myPort"
 
     private val httpClient =
