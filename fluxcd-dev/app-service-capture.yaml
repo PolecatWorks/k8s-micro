@@ -31,6 +31,7 @@ spec:
         hostUrl: http://kafka.confluent.svc.cluster.local:9092
         schemaRegistry:
           hostUrl: http://schemaregistry.confluent.svc.cluster.local:8081
+        billingOutputTopic: recon0-out
       sqlServer:
         database:
           url: jdbc:postgres://cnpg-db0-cluster-rw.dbs.svc.cluster.local:5432/recon
