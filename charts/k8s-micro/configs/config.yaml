@@ -15,6 +15,7 @@ kafkaProcessor:
   autoOffsetReset: latest
   readTopic: input
   writeTopic: output
+  billingOutputTopic: billing
   taskSleepDuration: 10s
   querySleep: 15s
   schemaRegistry:
