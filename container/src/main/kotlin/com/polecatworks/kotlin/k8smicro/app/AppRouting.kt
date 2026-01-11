@@ -37,7 +37,7 @@ fun Application.configureAppRouting(appService: AppService) {
                 }
             }
 
-            get("/store/{key}") {
+            get("/chaser/{key}") {
                 val key = call.parameters["key"]
                 if (key.isNullOrBlank()) {
                     call.respond(HttpStatusCode.BadRequest, "Missing key")
@@ -51,8 +51,8 @@ fun Application.configureAppRouting(appService: AppService) {
                 }
             }
 
-            get("/store") {
-                val keys = appService.getAllAggregateKeys()
+            get("/chaser") {
+                val keys = appService.getAllChaserAggregateKeys()
                 call.respond(keys)
             }
         }
