@@ -213,7 +213,7 @@ class KafkaProcessor(
 
             try {
                 while (running.get()) {
-                    println("**** Kafka task sleep waiting for it to complete")
+                    logger.debug("**** Kafka task sleep waiting for it to complete")
                     delay(config.taskSleepDuration)
                 }
             } finally {
