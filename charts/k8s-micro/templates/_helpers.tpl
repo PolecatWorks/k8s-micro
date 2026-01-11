@@ -65,6 +65,16 @@ app.kubernetes.io/instance: {{ .Release.Name }}
 {{- toYaml $postmerge }}
 {{- end -}}
 
+{{- define "k8s-micro.logback" -}}
+{{- if .Values.logback -}}
+{{- .Values.logback -}}
+{{- else -}}
+{{- .Files.Get "configs/logback.xml" -}}
+{{- end -}}
+{{- end -}}
+
+
+
 {{- define "k8s-micro.volumes" -}}
 {{- tpl (toYaml .Values.volumes) . }}
 {{- end -}}
@@ -87,4 +97,5 @@ Create the name of the service account to use
 {{- end }}
 
 {{- define "k8s-micro.env" -}}
+{{- tpl (toYaml .Values.env) . }}
 {{- end -}}

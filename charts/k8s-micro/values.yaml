@@ -1,4 +1,6 @@
-env: {}
+env:
+  - name: JAVA_TOOL_OPTIONS
+    value: "-Djava.util.logging.config.file=/opt/app/configs/logback.xml"
 
 args:
   - --config

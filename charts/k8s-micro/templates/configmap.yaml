@@ -8,3 +8,5 @@ metadata:
 data:
   serviceconfig.yaml: |
     {{- include "k8s-micro.config" . | nindent 4 }}
+  logback.xml: |
+    {{- include "k8s-micro.logback" . | nindent 4 }}
