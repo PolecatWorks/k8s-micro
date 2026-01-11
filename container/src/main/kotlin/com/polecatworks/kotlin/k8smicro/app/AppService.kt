@@ -145,11 +145,11 @@ class AppService(
     }
 
     suspend fun getAggregate(key: String): Event? {
-        val metadata = kafkaProcessor.getStoreMetaData(key)
+        val metadata = kafkaProcessor.getChaserStoreMetaData(key)
         if (metadata != null) {
             val activeHost = metadata.activeHost()
             if (activeHost.host() == myHost && activeHost.port() == myPort) {
-                return kafkaProcessor.getAggregate(key)
+                return kafkaProcessor.getChaserAggregate(key)
             } else {
                 logger.info { "Forwarding request for $key to ${activeHost.host()}:${activeHost.port()}" }
                 return try {
@@ -160,8 +160,9 @@ class AppService(
                 }
             }
         }
-        return kafkaProcessor.getAggregate(key)
+        // TODO: THis is not tested
+        return kafkaProcessor.getChaserAggregate(key)
     }
 
-    fun getAllAggregateKeys(): List<String> = kafkaProcessor.getAllAggregateKeys()
+    fun getAllChaserAggregateKeys(): List<String> = kafkaProcessor.getAllChaserAggregateKeys()
 }

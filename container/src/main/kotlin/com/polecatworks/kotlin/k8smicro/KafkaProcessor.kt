@@ -246,7 +246,7 @@ class KafkaProcessor(
         println("Initialising Kafka Processor: $config")
     }
 
-    fun getAggregate(key: String): Event? {
+    fun getChaserAggregate(key: String): Event? {
         val localStreams = streamsInstance ?: return null
         return try {
             val store: ReadOnlyKeyValueStore<String, Event> =
@@ -263,7 +263,7 @@ class KafkaProcessor(
         }
     }
 
-    fun getAllAggregateKeys(): List<String> {
+    fun getAllChaserAggregateKeys(): List<String> {
         val localStreams =
             streamsInstance ?: run {
                 logger.error("streamsInstance is null")
@@ -295,7 +295,7 @@ class KafkaProcessor(
         }
     }
 
-    fun getStoreMetaData(key: String): org.apache.kafka.streams.KeyQueryMetadata? {
+    fun getChaserStoreMetaData(key: String): org.apache.kafka.streams.KeyQueryMetadata? {
         val localStreams = streamsInstance ?: return null
         return try {
             localStreams.queryMetadataForKey(chaserStoreName, key, Serdes.String().serializer())
