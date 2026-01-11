@@ -3,7 +3,6 @@ package com.polecatworks.kotlin.k8smicro
 import com.polecatworks.kotlin.k8smicro.eventSerde.Event
 import com.polecatworks.kotlin.k8smicro.eventSerde.EventSchemaManager
 import com.polecatworks.kotlin.k8smicro.eventSerde.EventSerde
-import com.polecatworks.kotlin.k8smicro.eventSerde.Ingredient
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import io.confluent.kafka.streams.serdes.avro.GenericAvroSerde
@@ -24,21 +23,17 @@ import kotlin.test.assertEquals
 import kotlin.time.Duration.Companion.seconds
 
 class KafkaSerdeTest {
-    val schemaMap = mapOf("Pizza" to 1, "Burger" to 2, "Chaser" to 3, "Aggregate" to 4)
+    val schemaMap = mapOf("Bill" to 1, "PaymentRequest" to 2, "Chaser" to 3, "Aggregate" to 4)
 
-    // 1. Create a Margherita Pizza object
-    val margherita =
-        Event.Pizza(
-            name = "Margherita",
-            ingredients =
-                listOf(
-                    Ingredient("Dough", 3.0, 5.0),
-                    Ingredient("Tomato Sauce", 8.0, 1.0),
-                    Ingredient("Mozzarella", 1.0, 22.0),
-                    Ingredient("Basil", 0.0, 0.1),
-                ),
-            vegetarian = true,
-            kcals = 800,
+    val myBill =
+        Event.Bill(
+            billId = "BILL-1",
+            customerId = "CUST-1",
+            orderId = "ORDER-1",
+            amountCents = 10000,
+            currency = "USD",
+            issuedAt = 1000L,
+            dueDate = 2000L,
         )
 
 //    val burger =
@@ -120,10 +115,11 @@ class KafkaSerdeTest {
         }
 
         val serde = EventSerde()
-        val serialized = serde.serializer().serialize("test001-value", margherita)
+        serde.setSchemaManager(eventSchemaManager)
+        val serialized = serde.serializer().serialize("test001-value", myBill)
 
         val deserialized = serde.deserializer()!!.deserialize("test001-value", serialized)
-        assert(margherita == deserialized) { "Deserialized event does not match original" }
+        assertEquals(myBill, deserialized, "Deserialized event does not match original")
     }
 
     @Test

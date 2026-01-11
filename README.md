@@ -87,3 +87,8 @@ kubectl create secret generic k8s-micro --from-literal=username=user0 --from-lit
 ![GitHub](https://img.shields.io/github/license/polecatworks/k8s-micro?style=flat-square)
 ![GitHub last commit](https://img.shields.io/github/last-commit/polecatworks/k8s-micro?style=flat-square)
 ![GitHub contributors](https://img.shields.io/github/contributors/polecatworks/k8s-micro?style=flat-square)
+
+
+# Development HowTo
+
+Create a local build and run

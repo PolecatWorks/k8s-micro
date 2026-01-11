@@ -5,31 +5,7 @@ import kotlinx.serialization.Serializable
 import kotlin.reflect.KClass
 
 @Serializable
-data class Ingredient(
-    val name: String,
-    val sugar: Double,
-    val fat: Double,
-)
-
-@Serializable
 sealed class Event {
-    @Serializable
-    @SerialName("com.polecatworks.event.Pizza")
-    data class Pizza(
-        val name: String,
-        val ingredients: List<Ingredient>,
-        val vegetarian: Boolean,
-        val kcals: Int,
-    ) : Event()
-
-    @Serializable
-    @SerialName("com.polecatworks.event.Burger")
-    data class Burger(
-        val name: String,
-        val ingredients: List<Ingredient>,
-        val kcals: Int,
-    ) : Event()
-
     @Serializable
     @SerialName("com.polecatworks.chaser.Chaser")
     data class Chaser(
@@ -47,6 +23,47 @@ sealed class Event {
         val count: Long,
         val latest: Long?,
         val longest: Long?,
+    ) : Event()
+
+    @Serializable
+    @SerialName("com.polecatworks.billing.Bill")
+    data class Bill(
+        val billId: String,
+        val customerId: String,
+        val orderId: String,
+        val amountCents: Long,
+        val currency: String,
+        val issuedAt: Long,
+        val dueDate: Long,
+    ) : Event()
+
+    @Serializable
+    @SerialName("com.polecatworks.billing.PaymentRequest")
+    data class PaymentRequest(
+        val paymentId: String,
+        val billId: String,
+        val customerId: String,
+        val amountCents: Long,
+        val currency: String,
+        val requestedAt: Long,
+    ) : Event()
+
+    @Serializable
+    @SerialName("com.polecatworks.billing.PaymentFailed")
+    data class PaymentFailed(
+        val paymentId: String,
+        val billId: String,
+        val customerId: String,
+        val failureReason: String,
+        val failedAt: Long,
+    ) : Event()
+
+    @Serializable
+    @SerialName("com.polecatworks.billing.BillAggregate")
+    data class BillAggregate(
+        val bill: Bill? = null,
+        val paymentRequests: List<PaymentRequest> = emptyList(),
+        val lastPaymentFailed: PaymentFailed? = null,
     ) : Event()
 
     companion object {

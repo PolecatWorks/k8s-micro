@@ -6,7 +6,6 @@ import com.polecatworks.kotlin.k8smicro.eventSerde.Event
 import com.polecatworks.kotlin.k8smicro.eventSerde.EventDeSerializer
 import com.polecatworks.kotlin.k8smicro.eventSerde.EventSchemaManager
 import com.polecatworks.kotlin.k8smicro.eventSerde.EventSerializer
-import com.polecatworks.kotlin.k8smicro.eventSerde.Ingredient
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.engine.mock.MockEngine
@@ -36,64 +35,44 @@ import kotlin.time.Duration.Companion.seconds
 val schemaRegistryUrl = "http://localhost:8081"
 
 class Avro4k {
-    val schemaMap = mapOf("Burger" to 2, "Pizza" to 1)
-
-    // 1. Create a Margherita Pizza object
-    val margherita =
-        Event.Pizza(
-            name = "Margherita",
-            ingredients =
-                listOf(
-                    Ingredient("Dough", 3.0, 5.0),
-                    Ingredient("Tomato Sauce", 8.0, 1.0),
-                    Ingredient("Mozzarella", 1.0, 22.0),
-                    Ingredient("Basil", 0.0, 0.1),
-                ),
-            vegetarian = true,
-            kcals = 800,
+    val schemaMap =
+        mapOf(
+            "Chaser" to 1,
+            "Aggregate" to 2,
+            "Bill" to 3,
+            "PaymentRequest" to 4,
+            "PaymentFailed" to 5,
+            "BillAggregate" to 6,
         )
 
-    // 2. Create a Pepperoni Pizza object
-    val pepperoni =
-        Event.Pizza(
-            name = "Pepperoni",
-            ingredients =
-                listOf(
-                    Ingredient("Dough", 3.0, 5.0),
-                    Ingredient("Tomato Sauce", 8.0, 1.0),
-                    Ingredient("Mozzarella", 1.0, 22.0),
-                    Ingredient("Pepperoni", 0.5, 40.0),
-                ),
-            vegetarian = false,
-            kcals = 1200,
+    val chaser =
+        Event.Chaser(
+            name = "Ben",
+            id = "Benid",
+            sent = 3,
+            ttl = 4,
+            previous = null,
         )
 
-    // 3. Create a Veggie Supreme Pizza object
-    val veggieSupreme =
-        Event.Pizza(
-            name = "Veggie Supreme",
-            ingredients =
-                listOf(
-                    Ingredient("Dough", 3.0, 5.0),
-                    Ingredient("Tomato Sauce", 8.0, 1.0),
-                    Ingredient("Mozzarella", 1.0, 22.0),
-                    Ingredient("Bell Peppers", 4.0, 0.3),
-                    Ingredient("Onions", 5.0, 0.1),
-                    Ingredient("Mushrooms", 2.0, 0.5),
-                ),
-            vegetarian = true,
-            kcals = 950,
+    val bill =
+        Event.Bill(
+            billId = "BILL-1",
+            customerId = "CUST-1",
+            orderId = "ORDER-1",
+            amountCents = 10000,
+            currency = "USD",
+            issuedAt = 1000L,
+            dueDate = 2000L,
         )
 
-    val burger =
-        Event.Burger(
-            name = "CheeseBurger",
-            ingredients =
-                listOf(
-                    Ingredient("Bread", 3.0, 5.0),
-                    Ingredient("Meat", 8.0, 1.0),
-                ),
-            kcals = 200,
+    val paymentRequest =
+        Event.PaymentRequest(
+            paymentId = "PAY-1",
+            billId = "BILL-1",
+            customerId = "CUST-1",
+            amountCents = 10000,
+            currency = "USD",
+            requestedAt = 1100L,
         )
 
     val schmeaConfig = KafkaSchemaRegistryConfig(schemaRegistryUrl, 60.seconds)
@@ -160,7 +139,7 @@ class Avro4k {
             out.write(ByteBuffer.allocate(4).putInt(id).array())
         }
 
-        val schema = Avro.schema<Event.Pizza>()
+        val schema = Avro.schema<Event.Chaser>()
         println(schema.toString(true))
 
         val out = ByteArrayOutputStream()
@@ -173,28 +152,31 @@ class Avro4k {
 
         assertEquals(5, bytes.size) { "magic byte + SchemaID should equal 5" }
 
-        val margheritaBytes = Avro.encodeToByteArray(margherita)
+        val chaserBytes = Avro.encodeToByteArray(chaser)
 
-        println("Margarita = $margheritaBytes, length ${margheritaBytes.size}")
+        println("Chaser = $chaserBytes, length ${chaserBytes.size}")
 
-        val obj = Avro.decodeFromByteArray<Event.Pizza>(margheritaBytes)
+        val obj = Avro.decodeFromByteArray<Event.Chaser>(chaserBytes)
         println(obj)
     }
 
     @Test
     fun testSealedClass() {
-        fun getFood(): Event = margherita
+        fun getChaser(): Event = chaser
 
-        val myFood = getFood()
+        val myChaser = getChaser()
 
-        when (myFood) {
-            is Event.Burger -> println("BURGER")
-            is Event.Pizza -> println("PIZZA")
+        when (myChaser) {
             is Event.Chaser -> println("Chaser")
             is Event.Aggregate -> println("Aggregate")
+            is Event.Bill -> println("Bill")
+            is Event.PaymentRequest -> println("PaymentRequest")
+            is Event.PaymentFailed -> println("PaymentFailed")
+            is Event.BillAggregate -> println("BillAggregate")
+            else -> throw AssertionError("Unknown event type: ${myChaser.javaClass.name}")
         }
 
-        println("food = $myFood")
+        println("Chaser = $myChaser")
 
         val x = Event.subClasses()
 
@@ -205,65 +187,62 @@ class Avro4k {
 
     @Test
     fun avroSerdesOnTestStructures() {
-        val margheritaBytes = Avro.encodeToByteArray(margherita)
+        val billBytes = Avro.encodeToByteArray(bill)
 
-        println("Margarita = $margheritaBytes, length ${margheritaBytes.size}")
+        println("Bill = $billBytes, length ${billBytes.size}")
 
-        val obj = Avro.decodeFromByteArray<Event.Pizza>(margheritaBytes)
+        val obj = Avro.decodeFromByteArray<Event.Bill>(billBytes)
 
-        assertEquals(margherita, obj) { "Original and deserialized should match" }
+        assertEquals(bill, obj) { "Original and deserialized should match" }
         println(obj)
     }
 
     @Test
     fun eventSerializer() {
-        val foods = listOf(margherita, burger)
+        val events = listOf(bill, paymentRequest)
 
         val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
 
-        val schemaIdPizza = 1
-        eventSchemaManager.registerSchema(Event.Pizza::class.java, schemaIdPizza)
-        val schemaIdBurger = 2
-        eventSchemaManager.registerSchema(Event.Burger::class.java, schemaIdBurger)
+        val schemaIdBill = 3
+        eventSchemaManager.registerSchema(Event.Bill::class.java, schemaIdBill)
+        val schemaIdPayReq = 4
+        eventSchemaManager.registerSchema(Event.PaymentRequest::class.java, schemaIdPayReq)
 
         val eventSerializer = EventSerializer(eventSchemaManager)
 
-        val serializeds = foods.map { food -> eventSerializer.serialize("topic", food) }
+        val serializeds = events.map { event -> eventSerializer.serialize("topic", event) }
 
-        for (food in serializeds) {
-            println("Size = ${food?.size}")
+        for (event in serializeds) {
+            println("Size = ${event?.size}")
         }
 
-        assert(serializeds[0]?.size == 121) { "Margherita should be 121 bytes" }
-        assert(serializeds[1]?.size == 65) { "Burger should be 65 bytes" }
+        val billSerialized = eventSerializer.serialize("apple", bill)
 
-        val margheritaSerialized = eventSerializer.serialize("apple", margherita)
+        assertNotNull(billSerialized) { "serializer is not null" }
 
-        assertNotNull(margheritaSerialized) { "serializer is not null" }
-
-        println("serialized food = $margheritaSerialized of length ${margheritaSerialized.size}")
+        println("serialized event = $billSerialized of length ${billSerialized.size}")
     }
 
     @Test
     fun eventDeserializer() {
-        val foods = listOf(margherita, burger)
+        val events = listOf(bill, paymentRequest)
 
         val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
 
-        val schemaIdPizza = 1
-        eventSchemaManager.registerSchema(Event.Pizza::class.java, schemaIdPizza)
-        val schemaIdBurger = 2
-        eventSchemaManager.registerSchema(Event.Burger::class.java, schemaIdBurger)
+        val schemaIdBill = 3
+        eventSchemaManager.registerSchema(Event.Bill::class.java, schemaIdBill)
+        val schemaIdPayReq = 4
+        eventSchemaManager.registerSchema(Event.PaymentRequest::class.java, schemaIdPayReq)
 
         val eventSerializer = EventSerializer(eventSchemaManager)
 
-        val serializeds = foods.map { food -> eventSerializer.serialize("topic", food) }
+        val serializeds = events.map { event -> eventSerializer.serialize("topic", event) }
 
         val eventDeSerializer = EventDeSerializer(eventSchemaManager)
 
-        val deserializedFoods = serializeds.map { foodBytes -> eventDeSerializer.deserialize("topic", foodBytes) }
+        val deserializedEvents = serializeds.map { eventBytes -> eventDeSerializer.deserialize("topic", eventBytes) }
 
-        assertEquals(foods, deserializedFoods)
+        assertEquals(events, deserializedEvents)
     }
 
     @Ignore("Need network enabled for this")
@@ -288,10 +267,10 @@ class Avro4k {
 
             assert(reply) { "Could not connect to schema registry" }
 
-            val schema = Avro.schema<Event.Pizza>()
+            val schema = Avro.schema<Event.Bill>()
 
             val schemaId = schemaServer.registerSchema("test001", schema.toString())
-            assertEquals(1, schemaId)
+            assertEquals(3, schemaId)
         }
 
     @Test
@@ -311,11 +290,11 @@ class Avro4k {
 
             assertEquals(true, schemaServer.checkConnection())
 
-            val schema = Avro.schema<Event.Pizza>()
+            val schema = Avro.schema<Event.Bill>()
 
             // Expecting to use test001-value structure for schema names where test001 is the topic name
             val schemaId = schemaServer.registerSchema("test001-value", schema.toString())
-            assertEquals(1, schemaId)
+            assertEquals(3, schemaId)
         }
 
     // Test that loops over each of the subclasses fo Event and registers their schemas
@@ -344,33 +323,33 @@ class Avro4k {
         val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
 
         // Register a schema
-        val schemaIdPizza = 1
-        eventSchemaManager.registerSchema(Event.Pizza::class.java, schemaIdPizza)
-        val schemaIdBurger = 2
-        eventSchemaManager.registerSchema(Event.Burger::class.java, schemaIdBurger)
+        val schemaIdBill = 3
+        eventSchemaManager.registerSchema(Event.Bill::class.java, schemaIdBill)
+        val schemaIdPayReq = 4
+        eventSchemaManager.registerSchema(Event.PaymentRequest::class.java, schemaIdPayReq)
 
         // Retrieve schema by class
-        val retrievedSchemaIdPizza = eventSchemaManager.getSchemaIdForClass(Event.Pizza::class.java)
-        assertEquals(schemaIdPizza, retrievedSchemaIdPizza)
+        val retrievedSchemaIdBill = eventSchemaManager.getSchemaIdForClass(Event.Bill::class.java)
+        assertEquals(schemaIdBill, retrievedSchemaIdBill)
 
         // Retrieve class by schema id
-        val retrievedClassPizza = eventSchemaManager.getClassForSchemaId(schemaIdPizza)
-        assertEquals(Event.Pizza::class.java, retrievedClassPizza)
+        val retrievedClassBill = eventSchemaManager.getClassForSchemaId(schemaIdBill)
+        assertEquals(Event.Bill::class.java, retrievedClassBill)
 
         // Retrieve schema by class
-        val retrievedSchemaIdBurger = eventSchemaManager.getSchemaIdForClass(Event.Burger::class.java)
-        assertEquals(schemaIdBurger, retrievedSchemaIdBurger)
+        val retrievedSchemaIdPayReq = eventSchemaManager.getSchemaIdForClass(Event.PaymentRequest::class.java)
+        assertEquals(schemaIdPayReq, retrievedSchemaIdPayReq)
 
         // Retrieve class by schema id
-        val retrievedClassBurger = eventSchemaManager.getClassForSchemaId(schemaIdBurger)
-        assertEquals(Event.Burger::class.java, retrievedClassBurger)
+        val retrievedClassPayReq = eventSchemaManager.getClassForSchemaId(schemaIdPayReq)
+        assertEquals(Event.PaymentRequest::class.java, retrievedClassPayReq)
 
-        val marg = eventSchemaManager.getSchemaIdForEvent(margherita)
-        assertEquals(schemaIdPizza, marg)
+        val bId = eventSchemaManager.getSchemaIdForEvent(bill)
+        assertEquals(schemaIdBill, bId)
 
-        val burg = eventSchemaManager.getSchemaIdForEvent(burger)
+        val pId = eventSchemaManager.getSchemaIdForEvent(paymentRequest)
 
-        assertEquals(schemaIdBurger, burg)
+        assertEquals(schemaIdPayReq, pId)
     }
 
     @Test
@@ -380,31 +359,31 @@ class Avro4k {
             eventSchemaManager.registerAllSchemas("test001-value")
         }
 
-        val schemaIdPizza = 1
-        val schemaIdBurger = 2
+        val schemaIdBill = 3
+        val schemaIdPayReq = 4
 
         // Retrieve schema by class
-        val retrievedSchemaIdPizza = eventSchemaManager.getSchemaIdForClass(Event.Pizza::class.java)
-        assertEquals(schemaIdPizza, retrievedSchemaIdPizza)
+        val retrievedSchemaIdBill = eventSchemaManager.getSchemaIdForClass(Event.Bill::class.java)
+        assertEquals(schemaIdBill, retrievedSchemaIdBill)
 
         // Retrieve class by schema id
-        val retrievedClassPizza = eventSchemaManager.getClassForSchemaId(schemaIdPizza)
-        assertEquals(Event.Pizza::class.java, retrievedClassPizza)
+        val retrievedClassBill = eventSchemaManager.getClassForSchemaId(schemaIdBill)
+        assertEquals(Event.Bill::class.java, retrievedClassBill)
 
         // Retrieve schema by class
-        val retrievedSchemaIdBurger = eventSchemaManager.getSchemaIdForClass(Event.Burger::class.java)
-        assertEquals(schemaIdBurger, retrievedSchemaIdBurger)
+        val retrievedSchemaIdPayReq = eventSchemaManager.getSchemaIdForClass(Event.PaymentRequest::class.java)
+        assertEquals(schemaIdPayReq, retrievedSchemaIdPayReq)
 
         // Retrieve class by schema id
-        val retrievedClassBurger = eventSchemaManager.getClassForSchemaId(schemaIdBurger)
-        assertEquals(Event.Burger::class.java, retrievedClassBurger)
+        val retrievedClassPayReq = eventSchemaManager.getClassForSchemaId(schemaIdPayReq)
+        assertEquals(Event.PaymentRequest::class.java, retrievedClassPayReq)
 
-        val marg = eventSchemaManager.getSchemaIdForEvent(margherita)
-        assertEquals(schemaIdPizza, marg)
+        val bId = eventSchemaManager.getSchemaIdForEvent(bill)
+        assertEquals(schemaIdBill, bId)
 
-        val burg = eventSchemaManager.getSchemaIdForEvent(burger)
+        val pId = eventSchemaManager.getSchemaIdForEvent(paymentRequest)
 
-        assertEquals(schemaIdBurger, burg)
+        assertEquals(schemaIdPayReq, pId)
 
         println(eventSchemaManager)
     }

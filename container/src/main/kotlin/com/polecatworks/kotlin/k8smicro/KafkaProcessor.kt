@@ -5,15 +5,12 @@ import com.polecatworks.kotlin.k8smicro.eventSerde.EventSchemaManager
 import com.polecatworks.kotlin.k8smicro.eventSerde.EventSerde
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
-import io.confluent.kafka.streams.serdes.avro.GenericAvroSerde
 import io.ktor.client.engine.HttpClientEngine
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import mu.KotlinLogging
-import org.apache.avro.generic.GenericRecord
 import org.apache.kafka.clients.consumer.ConsumerConfig
-import org.apache.kafka.common.serialization.Serde
 import org.apache.kafka.common.serialization.Serdes
 import org.apache.kafka.common.serialization.Serdes.Long
 import org.apache.kafka.common.utils.Bytes
@@ -46,6 +43,7 @@ data class KafkaProcessorConfig constructor(
     val schemaRegistry: KafkaSchemaRegistryConfig,
     val readTopic: String,
     val writeTopic: String,
+    val billingOutputTopic: String,
     val applicationId: String = "kotlin1",
     val bootstrapServers: String = "localhost:9092",
     val processingGuarantee: String = StreamsConfig.EXACTLY_ONCE_V2,
@@ -63,63 +61,17 @@ class KafkaProcessor(
 ) {
     val schemaRegistryApi = KafkaSchemaRegistryApi(config.schemaRegistry, engine, health, running)
 
-//    val chaserSchema = Avro.schema<Chaser>()
     var chaserId: Int? = null
 
-    private val aggregateStoreName = "aggregate-store"
+    private val chaserStoreName = "chaser"
+    private val billingStoreName = "billing"
+
     private var streamsInstance: KafkaStreams? = null
 
     suspend fun start() =
         coroutineScope {
             logger.info("Starting kafka processing")
             launch { schemaRegistryApi.start() }
-
-//            println("Checking for schema: $chaserSchema")
-
-            // TODO: Should be a liveness check associated with this loop
-//            while (running.get() && chaserId === null) {
-//                try {
-//                    chaserId = schemaRegistryApi.registerSchema("${config.readTopic}-value", chaserSchema.toString())
-//                    println("Got a chaser = $chaserId")
-//                } catch (e: Exception) {
-//                    println("I got the error : $e so sleeping for ${config.querySleep}")
-//                    delay(config.querySleep)
-//                }
-//            }
-
-//        if (true) {
-//            val myChaser = Chaser("ABCNAME", "ID1", 12, 22, null)
-//            val baos = ByteArrayOutputStream()
-//            Avro.default.openOutputStream(Chaser.serializer()) {
-//                encodeFormat = AvroEncodeFormat.Binary
-//            }.to(baos).write(myChaser).close()
-//
-//            val baosString = baos.toString()
-//            logger.info("Looking at output = $baosString of length ${baosString.length}")
-//
-//            val ben = Avro.default.toRecord(Chaser.serializer(), myChaser)
-//            logger.info("Chaser = $ben")
-//
-//            logger.info("Chaser Schema registered for topic ${config.readTopic} with id: $chaserId")
-//        }
-//        if (true) {
-//            val serializer = KafkaAvro4kSerializer()
-//            serializer.configure(
-//                mapOf(
-//                    AbstractKafkaSchemaSerDeConfig.AUTO_REGISTER_SCHEMAS to "true",
-//                    AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to schemaRegistryApi.schemaRegistryUrl
-//                ),
-//                false
-//            )
-//            val avroSchema = Avro.default.schema(Chaser.serializer())
-//            val topic = "input"
-//            val subjectName = "$topic-value"
-//
-//            val myChaser = Chaser("ABCNAME", "ID1", 12, 22)
-//            val result = serializer.serialize(topic, myChaser)
-//
-//            logger.info("Serdes using xxxx = $result")
-//        }
 
             val streamsBuilder = StreamsBuilder()
             val streamProperties =
@@ -135,100 +87,106 @@ class KafkaProcessor(
                     StreamsConfig.APPLICATION_SERVER_CONFIG to applicationServer,
                 ).toProperties()
 
-            if (true) {
-                val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
-                eventSchemaManager.registerAllSchemas(config.readTopic)
-                val eventSerde = EventSerde()
+            val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
+            eventSchemaManager.registerAllSchemas(config.readTopic)
+            val eventSerde = EventSerde()
 
-                eventSerde.setSchemaManager(eventSchemaManager)
+            eventSerde.setSchemaManager(eventSchemaManager)
 
-                val mystream1Specific = streamsBuilder.stream<String, Event>(config.readTopic, Consumed.with(Serdes.String(), eventSerde))
+            val mystream1Specific = streamsBuilder.stream<String, Event>(config.readTopic, Consumed.with(Serdes.String(), eventSerde))
 
+            mystream1Specific
+                .print(Printed.toSysOut<String, Event>().withLabel("Avro4k"))
+
+            val mycountSpecific =
                 mystream1Specific
-                    .print(Printed.toSysOut<String, Event>().withLabel("Avro4k"))
+                    .filter { k, v -> v is Event.Chaser || v is Event.Bill || v is Event.PaymentRequest || v is Event.PaymentFailed }
+                    .map { k, v ->
+                        when (v) {
+                            is Event.Chaser -> KeyValue("${v.name}", 1L) // Count of chasers by name
+                            is Event.Bill -> KeyValue("Bill-$k", 1L) // Count of Bills for a given transations
+                            is Event.PaymentRequest -> KeyValue("PayReq-$k", 1L) // Count of payment requests for a given transaction
+                            is Event.PaymentFailed -> KeyValue("PayFail-$k", 1L) // Count of payment failures for a given transaction
+                            else -> throw IllegalArgumentException("Unknown event type: ${v.javaClass.name} should have been filtered out")
+                        }
+                    }.groupByKey(Grouped.with(Serdes.String(), Long()))
+                    .reduce { aggValue, newValue -> aggValue!! + newValue!! }
+                    .toStream()
 
-                val mycountSpecific =
-                    mystream1Specific
-                        .map { k, v ->
-                            when (v) {
-                                is Event.Pizza -> KeyValue("$k-pizza", 1L)
-                                is Event.Burger -> KeyValue("$k-burger", 1L)
-                                is Event.Chaser -> KeyValue("$k-${v.name}", 1L)
-                                is Event.Aggregate -> KeyValue("$k-Agg", 1L)
-                            }
-                        }.groupByKey(Grouped.with(Serdes.String(), Long()))
-                        .reduce { aggValue, newValue -> aggValue!! + newValue!! }
-                        .toStream()
+            mycountSpecific
+                .print(Printed.toSysOut<String?, Long?>().withLabel("Specific-count"))
 
-                mycountSpecific
-                    .print(Printed.toSysOut<String?, Long?>().withLabel("Specific-count"))
+            val chaserStream =
+                mystream1Specific
+                    .filter { k, v -> v is Event.Chaser }
 
-                val myAggregate1 =
-                    mystream1Specific
-                        .groupByKey()
-                        .aggregate<Event>(
-                            { Event.Aggregate(listOf(), 1, null, null) as Event },
-                            { k: String, v: Event, agg: Event ->
-                                val value =
-                                    when (v) {
-                                        is Event.Aggregate -> v
-                                        is Event.Chaser -> Event.Aggregate(listOf(v.name), 1, v.sent, v.ttl)
-                                        else -> Event.Aggregate(listOf(v.javaClass.name), 0, null, null)
-                                    }
-                                val aggregate =
-                                    when (agg) {
-                                        is Event.Aggregate -> agg
-                                        else -> throw IllegalArgumentException("Agg should not be class ${agg.javaClass.name}.")
-                                    }
-                                val uniqueNames = (value.names + aggregate.names).distinct()
-                                val count = value.count + aggregate.count
-                                val latest = maxOf(value.latest ?: 0, aggregate.latest ?: 0)
-                                val longest = maxOf(value.longest ?: 0, aggregate.longest ?: 0)
+            val chaserAggregate =
+                chaserStream
+                    .groupByKey()
+                    .aggregate<Event>(
+                        { Event.Aggregate(listOf(), 1, null, null) as Event },
+                        { k: String, v: Event, agg: Event ->
+                            val value =
+                                when (v) {
+                                    is Event.Aggregate -> v
+                                    is Event.Chaser -> Event.Aggregate(listOf(v.name), 1, v.sent, v.ttl)
+                                    else -> Event.Aggregate(listOf(v.javaClass.name), 0, null, null)
+                                }
+                            val aggregate =
+                                when (agg) {
+                                    is Event.Aggregate -> agg
+                                    else -> throw IllegalArgumentException("Agg should not be class ${agg.javaClass.name}.")
+                                }
+                            val uniqueNames = (value.names + aggregate.names).distinct()
+                            val count = value.count + aggregate.count
+                            val latest = maxOf(value.latest ?: 0, aggregate.latest ?: 0)
+                            val longest = maxOf(value.longest ?: 0, aggregate.longest ?: 0)
 
-                                Event.Aggregate(uniqueNames, count, latest, longest) as Event
-                            },
-                            Materialized
-                                .`as`<String, Event, KeyValueStore<Bytes, ByteArray>>(aggregateStoreName)
-                                .withKeySerde(Serdes.String())
-                                .withValueSerde(eventSerde),
-                        ).toStream(Named.`as`("aggout-merger"))
+                            Event.Aggregate(uniqueNames, count, latest, longest) as Event
+                        },
+                        Materialized
+                            .`as`<String, Event, KeyValueStore<Bytes, ByteArray>>(chaserStoreName)
+                            .withKeySerde(Serdes.String())
+                            .withValueSerde(eventSerde),
+                    ).toStream(Named.`as`("aggout-merger"))
 
-                myAggregate1
-                    .print(Printed.toSysOut<String?, Event?>().withLabel("Specific-agg"))
+            chaserAggregate
+                .print(Printed.toSysOut<String?, Event?>().withLabel("Specific-agg"))
 
-                myAggregate1
-                    .to(config.writeTopic, Produced.with(Serdes.String(), eventSerde))
+            chaserAggregate
+                .to(config.writeTopic, Produced.with(Serdes.String(), eventSerde))
 
-//                        .toStream( Produced.with(Serdes.String(), eventSerde), Named.`as`("aggmout-merger"))
-//                myAggregate1
-//                    .print(Printed.toSysOut<String?, Event.Aggregate?>().withLabel("Specific-agg"))
-            }
+            val billingStream =
+                mystream1Specific
+                    .filter { k, v -> v is Event.Bill || v is Event.PaymentRequest || v is Event.PaymentFailed }
 
-            if (false) {
-                // Setup with Confluent GenericRecord
-                val genericAvroSerde: Serde<GenericRecord> = GenericAvroSerde()
-                genericAvroSerde.configure(
-                    mapOf(AbstractKafkaSchemaSerDeConfig.SCHEMA_REGISTRY_URL_CONFIG to schemaRegistryApi.schemaRegistryUrl),
-                    false,
-                )
+            val billingAggregate =
+                billingStream
+                    .groupByKey()
+                    .aggregate<Event>(
+                        { Event.BillAggregate(null, emptyList(), null) },
+                        { k: String, v: Event, agg: Event ->
+                            val retVal =
+                                when (v) {
+                                    is Event.BillAggregate -> v // Allow to replace the current value
+                                    is Event.PaymentRequest -> Event.BillAggregate(null, emptyList(), null)
+                                    is Event.PaymentFailed -> Event.BillAggregate(null, emptyList(), null)
+                                    is Event.Bill -> Event.BillAggregate(null, emptyList(), null)
+                                    else -> agg
+                                }
+                            retVal
+                        },
+                        Materialized
+                            .`as`<String, Event, KeyValueStore<Bytes, ByteArray>>(billingStoreName)
+                            .withKeySerde(Serdes.String())
+                            .withValueSerde(eventSerde),
+                    ).toStream(Named.`as`("billing-merger"))
 
-                val streamGeneric =
-                    streamsBuilder
-                        .stream(config.readTopic, Consumed.with(Serdes.String(), genericAvroSerde))
-                streamGeneric
-                    .print(Printed.toSysOut<String?, GenericRecord?>().withLabel("Generic"))
+            billingAggregate
+                .print(Printed.toSysOut<String?, Event?>().withLabel("Specific-agg"))
 
-                val counts1Generic =
-                    streamGeneric
-                        .map { k, v ->
-                            val name = v.get("name")
-                            KeyValue("$k-$name", 1L)
-                        }.groupByKey(Grouped.with(Serdes.String(), Long()).withName("generic-group"))
-                        .reduce({ aggValue, newValue -> aggValue!! + newValue!! }, Materialized.`as`("generic-table"))
-                        .toStream()
-                counts1Generic
-                    .print(Printed.toSysOut<String?, Long?>().withLabel("Generic-count"))
-            }
+            billingAggregate
+                .to(config.billingOutputTopic, Produced.with(Serdes.String(), eventSerde))
 
             val topology = streamsBuilder.build()
 
@@ -251,47 +209,6 @@ class KafkaProcessor(
             streams.start()
             streamsInstance = streams
 
-//            .stream(config.readTopic, Consumed.with(Serdes.String(), Serdes.String()))
-            // .print(Printed.toSysOut<String, String>().withLabel("input-stream"))
-            // See here for custom serdes: https://github.com/confluentinc/examples/blob/7.3.2-post/clients/cloud/kotlin/src/main/kotlin/io/confluent/examples/clients/cloud/StreamsExample.kt
-
-//        val counts = records.map { k, v ->
-//            println("OKLY DOKLEY $k, $v")
-//
-//
-//
-// //            val result = deserializer.deserialize("input-value", v) as Chaser
-// //            println("The output value is ${result.name}")
-//            val name=v.name
-// //            val name = result.name
-//
-// //            val name = v.get("name").toString()
-// //            println("Got id = $name")
-// //            AvroSerializer<Chaser>.decodeAvroValue()
-//
-//            KeyValue(name, 1L)
-// //            KeyValue(k, v.length.toLong())
-//        }
-// //        counts.print(Printed.toSysOut<String, Long>().withLabel("Consumed record"))
-//        val countAgg = counts
-//            .groupByKey(Grouped.with(Serdes.String(), Long()))
-//            .reduce { aggValue, newValue -> aggValue!! + newValue!! }
-//            .toStream()
-//        countAgg.print(Printed.toSysOut<String, Long>().withLabel("Running count"))
-
-//
-// //        var streams: KafkaStreams? = null
-//        val kthread = thread {
-//            streams = KafkaStreams(builder.build(), streamProperties)
-// //                .use {
-// //                it.start()
-// // //                println("Starting use")
-// //            }
-//            logger.info("Constructed Kafka streams")
-//            streams!!.start()
-//            logger.info("Started Kafka streams")
-//        }
-
             logger.info("Kafka streams started")
 
             try {
@@ -312,11 +229,6 @@ class KafkaProcessor(
     fun writeMe(obj: Any?): ByteArray {
         val out = ByteArrayOutputStream()
         writeSchemaId(out, chaserId!!)
-//        if (obj is ByteArray) {
-//            out.write(obj)
-//        } else {
-//            serializeValue(out, obj, currentSchema)
-//        }
         val bytes = out.toByteArray()
         out.close()
         return bytes
@@ -340,7 +252,7 @@ class KafkaProcessor(
             val store: ReadOnlyKeyValueStore<String, Event> =
                 localStreams.store(
                     StoreQueryParameters.fromNameAndType(
-                        aggregateStoreName,
+                        chaserStoreName,
                         QueryableStoreTypes.keyValueStore<String, Event>(),
                     ),
                 )
@@ -352,12 +264,19 @@ class KafkaProcessor(
     }
 
     fun getAllAggregateKeys(): List<String> {
-        val localStreams = streamsInstance ?: return emptyList()
+        val localStreams =
+            streamsInstance ?: run {
+                logger.error("streamsInstance is null")
+                return emptyList()
+            }
+
+        logger.info("Got localStreams. Checking for all keys")
+
         return try {
             val store: ReadOnlyKeyValueStore<String, Event> =
                 localStreams.store(
                     StoreQueryParameters.fromNameAndType(
-                        aggregateStoreName,
+                        chaserStoreName,
                         QueryableStoreTypes.keyValueStore<String, Event>(),
                     ),
                 )
@@ -379,7 +298,7 @@ class KafkaProcessor(
     fun getStoreMetaData(key: String): org.apache.kafka.streams.KeyQueryMetadata? {
         val localStreams = streamsInstance ?: return null
         return try {
-            localStreams.queryMetadataForKey(aggregateStoreName, key, Serdes.String().serializer())
+            localStreams.queryMetadataForKey(chaserStoreName, key, Serdes.String().serializer())
         } catch (e: Exception) {
             logger.warn(e) { "Metadata query failed for key=$key" }
             null
