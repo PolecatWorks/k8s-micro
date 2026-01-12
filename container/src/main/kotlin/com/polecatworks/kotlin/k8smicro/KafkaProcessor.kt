@@ -304,4 +304,61 @@ class KafkaProcessor(
             null
         }
     }
+
+    fun getBillingAggregate(key: String): Event? {
+        val localStreams = streamsInstance ?: return null
+        return try {
+            val store: ReadOnlyKeyValueStore<String, Event> =
+                localStreams.store(
+                    StoreQueryParameters.fromNameAndType(
+                        billingStoreName,
+                        QueryableStoreTypes.keyValueStore<String, Event>(),
+                    ),
+                )
+            store.get(key)
+        } catch (e: Exception) {
+            logger.warn(e) { "Billing store query failed for key=$key" }
+            null
+        }
+    }
+
+    fun getAllBillingAggregateKeys(): List<String> {
+        val localStreams =
+            streamsInstance ?: run {
+                logger.error("streamsInstance is null")
+                return emptyList()
+            }
+
+        return try {
+            val store: ReadOnlyKeyValueStore<String, Event> =
+                localStreams.store(
+                    StoreQueryParameters.fromNameAndType(
+                        billingStoreName,
+                        QueryableStoreTypes.keyValueStore<String, Event>(),
+                    ),
+                )
+            val keys = mutableListOf<String>()
+            val iterator: KeyValueIterator<String, Event> = store.all()
+            iterator.use {
+                while (it.hasNext()) {
+                    val kv = it.next()
+                    keys.add(kv.key)
+                }
+            }
+            keys
+        } catch (e: Exception) {
+            logger.warn(e) { "Billing store keys query failed" }
+            emptyList()
+        }
+    }
+
+    fun getBillingStoreMetaData(key: String): org.apache.kafka.streams.KeyQueryMetadata? {
+        val localStreams = streamsInstance ?: return null
+        return try {
+            localStreams.queryMetadataForKey(billingStoreName, key, Serdes.String().serializer())
+        } catch (e: Exception) {
+            logger.warn(e) { "Billing metadata query failed for key=$key" }
+            null
+        }
+    }
 }
