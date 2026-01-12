@@ -55,27 +55,25 @@ fun Application.configureAppRouting(appService: AppService) {
                 val keys = appService.getAllChaserAggregateKeys()
                 call.respond(keys)
             }
+
+            get("/billing/{key}") {
+                val key = call.parameters["key"]
+                if (key.isNullOrBlank()) {
+                    call.respond(HttpStatusCode.BadRequest, "Missing key")
+                    return@get
+                }
+                val value = appService.getBillingAggregate(key)
+                if (value == null) {
+                    call.respond(HttpStatusCode.NotFound, "Not found")
+                } else {
+                    call.respond(value)
+                }
+            }
+
+            get("/billing") {
+                val keys = appService.getAllBillingAggregateKeys()
+                call.respond(keys)
+            }
         }
     }
-//    apiRouting {
-//        // Sample OpenAPI3 annotations: https://github.com/papsign/Ktor-OpenAPI-Generator/wiki/A-few-examples
-//        get<StringParam, String> { params ->
-//            respond("Smoke" + params.a)
-//        }
-//        route(appService.config.webserver.prefix) {
-//            get<Unit, StringResponse> { _ ->
-//                log.info("Hello from /api/v1")
-//                respond(StringResponse("params.a"))
-//            }
-//            route("/").get<Unit, StringResponse> { _params ->
-//                log.info("Hello from /api/v1/")
-//                respond(StringResponse("params.a"))
-//            }
-//            route("count").get<Unit, CountResponse> { _ ->
-//                val tempCount = appService.state.count.incrementAndGet()
-//                log.info("Counting up, currently = $tempCount")
-//                respond(CountResponse(tempCount))
-//            }
-//        }
-//    }
 }

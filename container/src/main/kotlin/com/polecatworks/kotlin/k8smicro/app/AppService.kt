@@ -153,7 +153,7 @@ class AppService(
             } else {
                 logger.info { "Forwarding request for $key to ${activeHost.host()}:${activeHost.port()}" }
                 return try {
-                    httpClient.get("http://${activeHost.host()}:${activeHost.port()}/store/$key").body()
+                    httpClient.get("http://${activeHost.host()}:${activeHost.port()}/chaser/$key").body()
                 } catch (e: Exception) {
                     logger.error(e) { "Forwarding failed to $activeHost" }
                     null
@@ -165,4 +165,25 @@ class AppService(
     }
 
     fun getAllChaserAggregateKeys(): List<String> = kafkaProcessor.getAllChaserAggregateKeys()
+
+    suspend fun getBillingAggregate(key: String): Event? {
+        val metadata = kafkaProcessor.getBillingStoreMetaData(key)
+        if (metadata != null) {
+            val activeHost = metadata.activeHost()
+            if (activeHost.host() == myHost && activeHost.port() == myPort) {
+                return kafkaProcessor.getBillingAggregate(key)
+            } else {
+                logger.info { "Forwarding request for $key to ${activeHost.host()}:${activeHost.port()}" }
+                return try {
+                    httpClient.get("http://${activeHost.host()}:${activeHost.port()}/billing/$key").body()
+                } catch (e: Exception) {
+                    logger.error(e) { "Forwarding failed to $activeHost" }
+                    null
+                }
+            }
+        }
+        return kafkaProcessor.getBillingAggregate(key)
+    }
+
+    fun getAllBillingAggregateKeys(): List<String> = kafkaProcessor.getAllBillingAggregateKeys()
 }
