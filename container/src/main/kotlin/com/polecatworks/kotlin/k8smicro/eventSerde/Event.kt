@@ -64,6 +64,7 @@ sealed class Event {
         val bill: Bill? = null,
         val paymentRequests: List<PaymentRequest> = emptyList(),
         val lastPaymentFailed: PaymentFailed? = null,
+        val errored: Boolean = false,
     ) : Event()
 
     companion object {

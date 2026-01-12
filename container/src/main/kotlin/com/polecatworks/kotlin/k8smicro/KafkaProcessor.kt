@@ -164,17 +164,19 @@ class KafkaProcessor(
                 billingStream
                     .groupByKey()
                     .aggregate<Event>(
-                        { Event.BillAggregate(null, emptyList(), null) },
+                        { Event.BillAggregate() },
                         { k: String, v: Event, agg: Event ->
-                            val retVal =
-                                when (v) {
-                                    is Event.BillAggregate -> v // Allow to replace the current value
-                                    is Event.PaymentRequest -> Event.BillAggregate(null, emptyList(), null)
-                                    is Event.PaymentFailed -> Event.BillAggregate(null, emptyList(), null)
-                                    is Event.Bill -> Event.BillAggregate(null, emptyList(), null)
-                                    else -> agg
+                            val currentAgg = agg as? Event.BillAggregate ?: Event.BillAggregate()
+                            when (v) {
+                                is Event.BillAggregate -> v
+                                is Event.Bill -> {
+                                    val isErrored = currentAgg.bill != null && currentAgg.bill != v
+                                    currentAgg.copy(bill = v, errored = currentAgg.errored || isErrored)
                                 }
-                            retVal
+                                is Event.PaymentRequest -> currentAgg.copy(paymentRequests = currentAgg.paymentRequests + v)
+                                is Event.PaymentFailed -> currentAgg.copy(lastPaymentFailed = v)
+                                else -> agg
+                            }
                         },
                         Materialized
                             .`as`<String, Event, KeyValueStore<Bytes, ByteArray>>(billingStoreName)
