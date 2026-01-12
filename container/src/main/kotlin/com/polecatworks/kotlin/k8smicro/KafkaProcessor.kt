@@ -173,8 +173,22 @@ class KafkaProcessor(
                                     val isErrored = currentAgg.bill != null && currentAgg.bill != v
                                     currentAgg.copy(bill = v, errored = currentAgg.errored || isErrored)
                                 }
-                                is Event.PaymentRequest -> currentAgg.copy(paymentRequests = currentAgg.paymentRequests + v)
-                                is Event.PaymentFailed -> currentAgg.copy(lastPaymentFailed = v)
+                                is Event.PaymentRequest -> {
+                                    val requests =
+                                        if (currentAgg.paymentRequests.any { it.paymentId == v.paymentId }) {
+                                            currentAgg.paymentRequests
+                                        } else {
+                                            currentAgg.paymentRequests + v
+                                        }
+                                    currentAgg.copy(paymentRequests = requests, lastPaymentFailed = null)
+                                }
+                                is Event.PaymentFailed -> {
+                                    if (currentAgg.lastPaymentFailed != null) {
+                                        currentAgg.copy(errored = true)
+                                    } else {
+                                        currentAgg.copy(lastPaymentFailed = v)
+                                    }
+                                }
                                 else -> agg
                             }
                         },
