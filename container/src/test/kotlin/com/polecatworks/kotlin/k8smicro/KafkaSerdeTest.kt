@@ -22,14 +22,9 @@ import kotlin.time.Duration.Companion.seconds
 
 class KafkaSerdeTest {
     val schemaMap =
-        mapOf(
-            "Bill" to 1,
-            "PaymentRequest" to 2,
-            "Chaser" to 3,
-            "Aggregate" to 4,
-            "PaymentFailed" to 5,
-            "BillAggregate" to 6,
-        )
+        Event.subClasses().withIndex().associate { (index, kClass) ->
+            kClass.simpleName!! to (index + 1)
+        }
 
     val myBill =
         Event.Bill(
