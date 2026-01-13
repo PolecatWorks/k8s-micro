@@ -6,10 +6,8 @@ import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import io.micrometer.prometheus.PrometheusConfig
 import io.micrometer.prometheus.PrometheusMeterRegistry
 import mu.KotlinLogging
-import java.nio.file.Path
-import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.CountDownLatch
 import kotlin.concurrent.thread
-import kotlin.time.Duration.Companion.milliseconds
 
 private val logger = KotlinLogging.logger {}
 
@@ -26,16 +24,15 @@ class K8sMicro(
     private val healthSystem = HealthSystem()
     private val appService = AppService(healthSystem, metricsRegistry, config)
     private val healthService = HealthService(version, appService, metricsRegistry, healthSystem, 8079)
-    private var running = AtomicBoolean(false)
-    private val shutdownHook = thread(start = false) {
-        logger.info("Starting shutdown hook")
-        appService.stop()
-        while (running.get()) { // Allow services time to shutdown
-            Thread.sleep(100.milliseconds.inWholeMilliseconds)
+    private val finishedLatch = CountDownLatch(1)
+    private val shutdownHook =
+        thread(start = false) {
+            logger.info("Starting shutdown hook")
+            appService.stop()
+            finishedLatch.await() // Wait for system to finish cleanup
+            logger.info("Shutdown hook complete")
         }
 
-        logger.info("Shutdown hook complete")
-    }
     init {
         Runtime.getRuntime().addShutdownHook(shutdownHook)
     }
@@ -45,18 +42,19 @@ class K8sMicro(
      */
     fun run() {
         logger.info("K8sMicro starting")
-        running.set(true)
-        val healthThread = thread {
-            healthService.start()
-            appService.stop()
-        }
+
+        val healthThread =
+            thread {
+                healthService.start()
+                appService.stop()
+            }
 
         appService.start() // Blocks here while app is running
 
         healthService.stop()
         logger.info("waiting for health service thread join")
         healthThread.join()
-        running.set(false)
+        finishedLatch.countDown()
         logger.info("K8sMicro is complete")
     }
 }
