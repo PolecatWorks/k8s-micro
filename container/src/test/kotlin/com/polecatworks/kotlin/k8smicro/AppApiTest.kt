@@ -17,7 +17,7 @@ import kotlin.time.Duration.Companion.seconds
 
 class AppApiTest {
     @Test
-    fun embeddedHealthApi() =
+    fun testAppRouting() =
         testApplication {
             val myConfig =
                 K8sMicroConfig(
