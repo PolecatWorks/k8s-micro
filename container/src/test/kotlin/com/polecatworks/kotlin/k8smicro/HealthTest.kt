@@ -8,7 +8,6 @@ import com.polecatworks.kotlin.k8smicro.health.configureHealthRouting
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
-import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -20,11 +19,10 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import org.junit.Test
-import kotlin.concurrent.thread
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
 import kotlin.test.assertNotEquals
@@ -186,39 +184,24 @@ class HealthTest {
                     mockMetricsRegistry,
                     mockHealthSystem,
                 )
-            val healthThread =
-                thread {
-                    println("starting")
-                    healthService.start()
-                    println("done")
+            val healthJob =
+                launch {
+                    println("starting health service")
+                    healthService.startSuspended()
+                    println("health service stopped")
                 }
             val healthPort = 8079
 
-            // Retry loop to avoid race conditions where the test client tries to connect
-            // before the server has finished binding to the port. This is especially
-            // important in slower environments like Docker or CI.
-            var response: HttpResponse? = null
-            var lastError: Exception? = null
-            for (i in 1..20) {
-                try {
-                    response = HttpClient(CIO).get("http://localhost:$healthPort/hams/version")
-                    break
-                } catch (e: Exception) {
-                    lastError = e
-                    // Wait a bit before retrying
-                    delay(500.milliseconds)
-                }
-            }
+            // Wait for the server to be fully started using the new signaling mechanism
+            healthService.waitUntilStarted()
 
-            if (response == null) {
-                throw lastError ?: RuntimeException("Server did not start in time")
-            }
+            val response = HttpClient(CIO).get("http://localhost:$healthPort/hams/version")
 
             Assert.assertEquals(HttpStatusCode.OK, response.status)
             Assert.assertEquals(version, response.bodyAsText())
 
             healthService.stop()
-            healthThread.join()
+            healthJob.join()
             println("Done with test")
         }
 }
