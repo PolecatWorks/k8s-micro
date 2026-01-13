@@ -87,124 +87,12 @@ class KafkaProcessor(
                     StreamsConfig.APPLICATION_SERVER_CONFIG to applicationServer,
                 ).toProperties()
 
+            val eventSerde = EventSerde()
             val eventSchemaManager = EventSchemaManager(schemaRegistryApi)
             eventSchemaManager.registerAllSchemas(config.readTopic)
-            val eventSerde = EventSerde()
-
             eventSerde.setSchemaManager(eventSchemaManager)
 
-            val mystream1Specific = streamsBuilder.stream<String, Event>(config.readTopic, Consumed.with(Serdes.String(), eventSerde))
-
-            mystream1Specific
-                .print(Printed.toSysOut<String, Event>().withLabel("Avro4k"))
-
-            val mycountSpecific =
-                mystream1Specific
-                    .filter { k, v -> v is Event.Chaser || v is Event.Bill || v is Event.PaymentRequest || v is Event.PaymentFailed }
-                    .map { k, v ->
-                        when (v) {
-                            is Event.Chaser -> KeyValue("${v.name}", 1L) // Count of chasers by name
-                            is Event.Bill -> KeyValue("Bill-$k", 1L) // Count of Bills for a given transations
-                            is Event.PaymentRequest -> KeyValue("PayReq-$k", 1L) // Count of payment requests for a given transaction
-                            is Event.PaymentFailed -> KeyValue("PayFail-$k", 1L) // Count of payment failures for a given transaction
-                            else -> throw IllegalArgumentException("Unknown event type: ${v.javaClass.name} should have been filtered out")
-                        }
-                    }.groupByKey(Grouped.with(Serdes.String(), Long()))
-                    .reduce { aggValue, newValue -> aggValue!! + newValue!! }
-                    .toStream()
-
-            mycountSpecific
-                .print(Printed.toSysOut<String?, Long?>().withLabel("Specific-count"))
-
-            val chaserStream =
-                mystream1Specific
-                    .filter { k, v -> v is Event.Chaser }
-
-            val chaserAggregate =
-                chaserStream
-                    .groupByKey()
-                    .aggregate<Event>(
-                        { Event.Aggregate(listOf(), 1, null, null) as Event },
-                        { k: String, v: Event, agg: Event ->
-                            val value =
-                                when (v) {
-                                    is Event.Aggregate -> v
-                                    is Event.Chaser -> Event.Aggregate(listOf(v.name), 1, v.sent, v.ttl)
-                                    else -> Event.Aggregate(listOf(v.javaClass.name), 0, null, null)
-                                }
-                            val aggregate =
-                                when (agg) {
-                                    is Event.Aggregate -> agg
-                                    else -> throw IllegalArgumentException("Agg should not be class ${agg.javaClass.name}.")
-                                }
-                            val uniqueNames = (value.names + aggregate.names).distinct()
-                            val count = value.count + aggregate.count
-                            val latest = maxOf(value.latest ?: 0, aggregate.latest ?: 0)
-                            val longest = maxOf(value.longest ?: 0, aggregate.longest ?: 0)
-
-                            Event.Aggregate(uniqueNames, count, latest, longest) as Event
-                        },
-                        Materialized
-                            .`as`<String, Event, KeyValueStore<Bytes, ByteArray>>(chaserStoreName)
-                            .withKeySerde(Serdes.String())
-                            .withValueSerde(eventSerde),
-                    ).toStream(Named.`as`("aggout-merger"))
-
-            chaserAggregate
-                .print(Printed.toSysOut<String?, Event?>().withLabel("Specific-agg"))
-
-            chaserAggregate
-                .to(config.writeTopic, Produced.with(Serdes.String(), eventSerde))
-
-            val billingStream =
-                mystream1Specific
-                    .filter { k, v -> v is Event.Bill || v is Event.PaymentRequest || v is Event.PaymentFailed }
-
-            val billingAggregate =
-                billingStream
-                    .groupByKey()
-                    .aggregate<Event>(
-                        { Event.BillAggregate() },
-                        { k: String, v: Event, agg: Event ->
-                            val currentAgg = agg as? Event.BillAggregate ?: Event.BillAggregate()
-                            when (v) {
-                                is Event.BillAggregate -> v
-                                is Event.Bill -> {
-                                    val isErrored = currentAgg.bill != null && currentAgg.bill != v
-                                    currentAgg.copy(bill = v, errored = currentAgg.errored || isErrored)
-                                }
-                                is Event.PaymentRequest -> {
-                                    val requests =
-                                        if (currentAgg.paymentRequests.any { it.paymentId == v.paymentId }) {
-                                            currentAgg.paymentRequests
-                                        } else {
-                                            currentAgg.paymentRequests + v
-                                        }
-                                    currentAgg.copy(paymentRequests = requests, lastPaymentFailed = null)
-                                }
-                                is Event.PaymentFailed -> {
-                                    if (currentAgg.lastPaymentFailed != null) {
-                                        currentAgg.copy(errored = true)
-                                    } else {
-                                        currentAgg.copy(lastPaymentFailed = v)
-                                    }
-                                }
-                                else -> agg
-                            }
-                        },
-                        Materialized
-                            .`as`<String, Event, KeyValueStore<Bytes, ByteArray>>(billingStoreName)
-                            .withKeySerde(Serdes.String())
-                            .withValueSerde(eventSerde),
-                    ).toStream(Named.`as`("billing-merger"))
-
-            billingAggregate
-                .print(Printed.toSysOut<String?, Event?>().withLabel("Specific-agg"))
-
-            billingAggregate
-                .to(config.billingOutputTopic, Produced.with(Serdes.String(), eventSerde))
-
-            val topology = streamsBuilder.build()
+            val topology = buildTopology(streamsBuilder, eventSerde)
 
             print(topology.describe())
 
@@ -376,5 +264,123 @@ class KafkaProcessor(
             logger.warn(e) { "Billing metadata query failed for key=$key" }
             null
         }
+    }
+
+    fun buildTopology(
+        streamsBuilder: StreamsBuilder,
+        eventSerde: EventSerde,
+    ): org.apache.kafka.streams.Topology {
+        val mystream1Specific = streamsBuilder.stream<String, Event>(config.readTopic, Consumed.with(Serdes.String(), eventSerde))
+
+        mystream1Specific
+            .print(Printed.toSysOut<String, Event>().withLabel("Avro4k"))
+
+        val mycountSpecific =
+            mystream1Specific
+                .filter { k, v -> v is Event.Chaser || v is Event.Bill || v is Event.PaymentRequest || v is Event.PaymentFailed }
+                .map { k, v ->
+                    when (v) {
+                        is Event.Chaser -> KeyValue("${v.name}", 1L) // Count of chasers by name
+                        is Event.Bill -> KeyValue("Bill-$k", 1L) // Count of Bills for a given transations
+                        is Event.PaymentRequest -> KeyValue("PayReq-$k", 1L) // Count of payment requests for a given transaction
+                        is Event.PaymentFailed -> KeyValue("PayFail-$k", 1L) // Count of payment failures for a given transaction
+                        else -> throw IllegalArgumentException("Unknown event type: ${v.javaClass.name} should have been filtered out")
+                    }
+                }.groupByKey(Grouped.with(Serdes.String(), Long()))
+                .reduce { aggValue, newValue -> aggValue!! + newValue!! }
+                .toStream()
+
+        mycountSpecific
+            .print(Printed.toSysOut<String?, Long?>().withLabel("Specific-count"))
+
+        val chaserStream =
+            mystream1Specific
+                .filter { k, v -> v is Event.Chaser }
+
+        val chaserAggregate =
+            chaserStream
+                .groupByKey()
+                .aggregate<Event>(
+                    { Event.Aggregate(listOf(), 1, null, null) as Event },
+                    { k: String, v: Event, agg: Event ->
+                        val value =
+                            when (v) {
+                                is Event.Aggregate -> v
+                                is Event.Chaser -> Event.Aggregate(listOf(v.name), 1, v.sent, v.ttl)
+                                else -> Event.Aggregate(listOf(v.javaClass.name), 0, null, null)
+                            }
+                        val aggregate =
+                            when (agg) {
+                                is Event.Aggregate -> agg
+                                else -> throw IllegalArgumentException("Agg should not be class ${agg.javaClass.name}.")
+                            }
+                        val uniqueNames = (value.names + aggregate.names).distinct()
+                        val count = value.count + aggregate.count
+                        val latest = maxOf(value.latest ?: 0, aggregate.latest ?: 0)
+                        val longest = maxOf(value.longest ?: 0, aggregate.longest ?: 0)
+
+                        Event.Aggregate(uniqueNames, count, latest, longest) as Event
+                    },
+                    Materialized
+                        .`as`<String, Event, KeyValueStore<Bytes, ByteArray>>(chaserStoreName)
+                        .withKeySerde(Serdes.String())
+                        .withValueSerde(eventSerde),
+                ).toStream(Named.`as`("aggout-merger"))
+
+        chaserAggregate
+            .print(Printed.toSysOut<String?, Event?>().withLabel("Specific-agg"))
+
+        chaserAggregate
+            .to(config.writeTopic, Produced.with(Serdes.String(), eventSerde))
+
+        val billingStream =
+            mystream1Specific
+                .filter { k, v -> v is Event.Bill || v is Event.PaymentRequest || v is Event.PaymentFailed }
+
+        val billingAggregate =
+            billingStream
+                .groupByKey()
+                .aggregate<Event>(
+                    { Event.BillAggregate() },
+                    { k: String, v: Event, agg: Event ->
+                        val currentAgg = agg as? Event.BillAggregate ?: Event.BillAggregate()
+                        when (v) {
+                            is Event.BillAggregate -> v
+                            is Event.Bill -> {
+                                val isErrored = currentAgg.bill != null && currentAgg.bill != v
+                                currentAgg.copy(bill = v, errored = currentAgg.errored || isErrored)
+                            }
+                            is Event.PaymentRequest -> {
+                                val requests =
+                                    if (currentAgg.paymentRequests.any { it.paymentId == v.paymentId }) {
+                                        currentAgg.paymentRequests
+                                    } else {
+                                        currentAgg.paymentRequests + v
+                                    }
+                                currentAgg.copy(paymentRequests = requests, lastPaymentFailed = null)
+                            }
+                            is Event.PaymentFailed -> {
+                                if (currentAgg.lastPaymentFailed != null) {
+                                    currentAgg.copy(errored = true)
+                                } else {
+                                    currentAgg.copy(lastPaymentFailed = v)
+                                }
+                            }
+                            else -> agg
+                        }
+                    },
+                    Materialized
+                        .`as`<String, Event, KeyValueStore<Bytes, ByteArray>>(billingStoreName)
+                        .withKeySerde(Serdes.String())
+                        .withValueSerde(eventSerde),
+                ).toStream(Named.`as`("billing-merger"))
+
+        billingAggregate
+            .print(Printed.toSysOut<String?, Event?>().withLabel("Specific-agg"))
+
+        billingAggregate
+            .to(config.billingOutputTopic, Produced.with(Serdes.String(), eventSerde))
+
+        return streamsBuilder.build()
     }
 }
