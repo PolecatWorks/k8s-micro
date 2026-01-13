@@ -26,14 +26,9 @@ import kotlin.time.Duration.Companion.seconds
 
 class KafkaProcessorTest {
     private val schemaMap =
-        mapOf(
-            "Chaser" to 1,
-            "Aggregate" to 2,
-            "Bill" to 3,
-            "PaymentRequest" to 4,
-            "PaymentFailed" to 5,
-            "BillAggregate" to 6,
-        )
+        Event.subClasses().withIndex().associate { (index, kClass) ->
+            kClass.simpleName!! to (index + 1)
+        }
 
     private val mockEngine =
         MockEngine { request ->
@@ -86,10 +81,10 @@ class KafkaProcessorTest {
         val eventSchemaManager = EventSchemaManager(processor.schemaRegistryApi)
 
         // Mocking schema registration since we don't have a real schema registry
-        eventSchemaManager.registerSchema(Event.Bill::class.java, 3)
-        eventSchemaManager.registerSchema(Event.PaymentRequest::class.java, 4)
-        eventSchemaManager.registerSchema(Event.PaymentFailed::class.java, 5)
-        eventSchemaManager.registerSchema(Event.BillAggregate::class.java, 6)
+        Event.subClasses().forEach { kClass ->
+            val id = schemaMap[kClass.simpleName] ?: 0
+            eventSchemaManager.registerSchema(kClass.java, id)
+        }
 
         eventSerde.setSchemaManager(eventSchemaManager)
 
