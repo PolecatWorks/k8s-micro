@@ -1,6 +1,5 @@
 package com.polecatworks.kotlin.k8smicro.app
 
-import io.ktor.http.HttpMethod
 import io.ktor.http.HttpStatusCode
 import io.ktor.server.application.Application
 import io.ktor.server.response.respond
@@ -31,10 +30,22 @@ private val log = KotlinLogging.logger {}
 fun Application.configureAppRouting(appService: AppService) {
     routing {
         route(appService.myWebserver.prefix) {
-            route("/hello", HttpMethod.Get) {
-                handle {
-                    call.respondText("Hello back")
-                }
+            get {
+                call.respond(mapOf("str" to "params.a"))
+            }
+
+            get("/hello") {
+                call.respondText("Hello back")
+            }
+
+            get("/string/{a}") {
+                val a = call.parameters["a"] ?: "unknown"
+                call.respondText("Smoke$a")
+            }
+
+            get("/count") {
+                val count = appService.state.count.incrementAndGet()
+                call.respond(mapOf("count" to count))
             }
 
             get("/chaser/{key}") {

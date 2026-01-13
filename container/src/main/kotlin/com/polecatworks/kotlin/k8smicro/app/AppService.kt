@@ -36,7 +36,7 @@ data class AppServiceState(
     var count: AtomicInteger,
 )
 
-class AppService(
+open class AppService(
     private val health: HealthSystem,
     private val metricsRegistry: PrometheusMeterRegistry,
     val config: K8sMicroConfig,
@@ -72,7 +72,7 @@ class AppService(
 
     private val myHost = InetAddress.getLocalHost().hostName
     private val myPort = config.webserver.port
-    val myWebserver = config.webserver
+    open val myWebserver = config.webserver
     private val applicationServer = "$myHost:$myPort"
 
     private val httpClient =
