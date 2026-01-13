@@ -8,6 +8,7 @@ import com.polecatworks.kotlin.k8smicro.health.configureHealthRouting
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.get
+import io.ktor.client.statement.HttpResponse
 import io.ktor.client.statement.bodyAsText
 import io.ktor.http.HttpStatusCode
 import io.ktor.serialization.kotlinx.json.json
@@ -19,6 +20,7 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.spyk
 import io.mockk.verify
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert
 import org.junit.Test
@@ -192,7 +194,25 @@ class HealthTest {
                 }
             val healthPort = 8079
 
-            val response = HttpClient(CIO).get("http://localhost:$healthPort/hams/version")
+            // Retry loop to avoid race conditions where the test client tries to connect
+            // before the server has finished binding to the port. This is especially
+            // important in slower environments like Docker or CI.
+            var response: HttpResponse? = null
+            var lastError: Exception? = null
+            for (i in 1..20) {
+                try {
+                    response = HttpClient(CIO).get("http://localhost:$healthPort/hams/version")
+                    break
+                } catch (e: Exception) {
+                    lastError = e
+                    // Wait a bit before retrying
+                    delay(500.milliseconds)
+                }
+            }
+
+            if (response == null) {
+                throw lastError ?: RuntimeException("Server did not start in time")
+            }
 
             Assert.assertEquals(HttpStatusCode.OK, response.status)
             Assert.assertEquals(version, response.bodyAsText())
