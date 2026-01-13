@@ -1,5 +1,6 @@
 package com.polecatworks.kotlin.k8smicro.eventSerde
 
+import com.github.avrokotlin.avro4k.AvroDefault
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlin.reflect.KClass
@@ -64,6 +65,7 @@ sealed class Event {
         val bill: Bill? = null,
         val paymentRequests: List<PaymentRequest> = emptyList(),
         val lastPaymentFailed: PaymentFailed? = null,
+        @AvroDefault("false")
         val errored: Boolean = false,
     ) : Event()
 
