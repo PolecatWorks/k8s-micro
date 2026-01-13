@@ -8,6 +8,7 @@ import io.ktor.server.cio.CIO
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.plugins.contentnegotiation.ContentNegotiation
 import io.micrometer.prometheus.PrometheusMeterRegistry
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -26,6 +27,8 @@ class HealthService(
     val health: HealthSystem,
     private val port: Int = 8079,
 ) {
+    private val serverStarted = CompletableDeferred<Unit>()
+
     private var running = AtomicBoolean(false)
     private val server =
         embeddedServer(
@@ -40,6 +43,10 @@ class HealthService(
             // Does not make sense to install metrics on health server unless we are concerned about its performance
 
             configureHealthRouting(version, appService, metricsRegistry, health, this@HealthService)
+
+            monitor.subscribe(io.ktor.server.application.ApplicationStarted) {
+                serverStarted.complete(Unit)
+            }
         }
 
     init {
@@ -68,6 +75,13 @@ class HealthService(
             }
         }
 
+    suspend fun startSuspended() = startCoroutines()
+
+    /**
+     * Wait for the health service to be fully started and listening
+     */
+    suspend fun waitUntilStarted() = serverStarted.await()
+
     /**
      * Create blocking coroutine context and wait for completion
      *
@@ -76,7 +90,7 @@ class HealthService(
     fun start() =
         runBlocking {
             logger.info { "Health coroutines: Starting" }
-            startCoroutines()
+            startSuspended()
             logger.info { "Health coroutines: Complete" }
         }
 
