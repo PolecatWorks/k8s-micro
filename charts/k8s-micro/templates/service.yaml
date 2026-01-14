@@ -11,5 +11,9 @@ spec:
       targetPort: http-web
       protocol: TCP
       name: http-web
+    - name: http-envoy-prom
+      port: 15020
+      protocol: TCP
+      targetPort: 15020
   selector:
     {{- include "k8s-micro.selectorLabels" . | nindent 4 }}
