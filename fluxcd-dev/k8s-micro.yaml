@@ -35,6 +35,10 @@ spec:
       sqlServer:
         database:
           url: jdbc:postgres://cnpg-db0-cluster-rw.dbs.svc.cluster.local:5432/recon
+    podAnnotations:
+      prometheus.io/path: /hams/metrics
+      prometheus.io/port: "8079"
+      prometheus.io/scrape: "true"
     image:
       repository: ghcr.io/polecatworks/k8s-micro
       tag: main
