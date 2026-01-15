@@ -305,6 +305,11 @@ class KafkaProcessor(
                 .aggregate<Event>(
                     { Event.Aggregate(listOf(), 1, null, null) as Event },
                     { k: String, v: Event, agg: Event ->
+                        if (v is Event.Chaser) {
+                            metricsRegistry
+                                .summary("chaser.ttl", "chaser_name", v.name, "key", k)
+                                .record(v.ttl.toDouble())
+                        }
                         val value =
                             when (v) {
                                 is Event.Aggregate -> v
