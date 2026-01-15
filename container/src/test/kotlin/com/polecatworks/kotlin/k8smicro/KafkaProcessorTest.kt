@@ -207,4 +207,49 @@ class KafkaProcessorTest {
             assertEquals(1.0, distinctBillCounter!!.count()) // Only the first bill counts as 'new' for this billId
         }
     }
+
+    @Test
+    fun testChaserTTL() {
+        val processor = KafkaProcessor(config, health, mockEngine, running, "localhost:8080", metricsRegistry)
+        val eventSerde = EventSerde()
+        val eventSchemaManager = EventSchemaManager(processor.schemaRegistryApi)
+
+        Event.subClasses().forEach { kClass ->
+            val id = schemaMap[kClass.simpleName] ?: 0
+            eventSchemaManager.registerSchema(kClass.java, id)
+        }
+
+        eventSerde.setSchemaManager(eventSchemaManager)
+
+        val props =
+            Properties().apply {
+                setProperty("application.id", "test-chaser")
+                setProperty("bootstrap.servers", "localhost:9092")
+            }
+
+        val builder = StreamsBuilder()
+        val topology = processor.buildTopology(builder, eventSerde)
+
+        TopologyTestDriver(topology, props).use { driver ->
+            val inputTopic = driver.createInputTopic(config.readTopic, Serdes.String().serializer(), eventSerde.serializer())
+
+            val chaser1 = Event.Chaser(name = "chaser-A", id = "id-1", sent = 1000L, ttl = 300L, previous = null)
+            val chaser2 = Event.Chaser(name = "chaser-A", id = "id-2", sent = 2000L, ttl = 450L, previous = 1000L)
+
+            inputTopic.pipeInput("key-1", chaser1)
+            inputTopic.pipeInput("key-1", chaser2)
+
+            val summary =
+                metricsRegistry
+                    .find("chaser.ttl")
+                    .tag("chaser_name", "chaser-A")
+                    .tag("key", "key-1")
+                    .summary()
+
+            assertNotNull(summary)
+            assertEquals(2L, summary!!.count())
+            assertEquals(450.0, summary!!.max(), 0.01)
+            assertEquals(750.0, summary!!.totalAmount(), 0.01) // 300 + 450
+        }
+    }
 }
