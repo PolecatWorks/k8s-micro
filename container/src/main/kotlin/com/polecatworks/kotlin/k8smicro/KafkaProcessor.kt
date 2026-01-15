@@ -34,6 +34,7 @@ import org.apache.kafka.streams.state.ReadOnlyKeyValueStore
 import java.io.ByteArrayOutputStream
 import java.nio.ByteBuffer
 import java.util.concurrent.atomic.AtomicBoolean
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
@@ -272,6 +273,21 @@ class KafkaProcessor(
         streamsBuilder: StreamsBuilder,
         eventSerde: EventSerde,
     ): org.apache.kafka.streams.Topology {
+        val chaserTimer =
+            metricsRegistry
+                .timer("chaser.received")
+
+        val chaserTtlGauge =
+            metricsRegistry
+                .gauge("chaser.ttl.value", AtomicLong(0))!!
+
+        val billingAggregateTimer =
+            metricsRegistry
+                .timer("billing.aggregation")
+        val billingBillsTimer =
+            metricsRegistry
+                .timer("billing.customer.bills")
+
         val mystream1Specific = streamsBuilder.stream<String, Event>(config.readTopic, Consumed.with(Serdes.String(), eventSerde))
 
         mystream1Specific
@@ -282,7 +298,7 @@ class KafkaProcessor(
                 .filter { k, v -> v is Event.Chaser || v is Event.Bill || v is Event.PaymentRequest || v is Event.PaymentFailed }
                 .map { k, v ->
                     when (v) {
-                        is Event.Chaser -> KeyValue("${v.name}", 1L) // Count of chasers by name
+                        is Event.Chaser -> KeyValue(v.name, 1L) // Count of chasers by name
                         is Event.Bill -> KeyValue("Bill-$k", 1L) // Count of Bills for a given transations
                         is Event.PaymentRequest -> KeyValue("PayReq-$k", 1L) // Count of payment requests for a given transaction
                         is Event.PaymentFailed -> KeyValue("PayFail-$k", 1L) // Count of payment failures for a given transaction
@@ -306,9 +322,8 @@ class KafkaProcessor(
                     { Event.Aggregate(listOf(), 1, null, null) as Event },
                     { k: String, v: Event, agg: Event ->
                         if (v is Event.Chaser) {
-                            metricsRegistry
-                                .summary("chaser.ttl", "chaser_name", v.name, "key", k)
-                                .record(v.ttl.toDouble())
+                            chaserTimer.record(java.time.Duration.ZERO)
+                            chaserTtlGauge.set(v.ttl)
                         }
                         val value =
                             when (v) {
@@ -360,24 +375,11 @@ class KafkaProcessor(
                                 else -> "unknown"
                             }
 
-                        // Track every aggregation event with tags
-                        metricsRegistry
-                            .counter(
-                                "billing.aggregation.total",
-                                "customer_id",
-                                customerId,
-                                "event_type",
-                                v::class.simpleName ?: "unknown",
-                            ).increment()
+                        billingAggregateTimer.record(java.time.Duration.ZERO)
 
                         // Specifically track number of distinct bills per customer
                         if (v is Event.Bill && currentAgg.bill == null) {
-                            metricsRegistry
-                                .counter(
-                                    "billing.customer.bills.total",
-                                    "customer_id",
-                                    customerId,
-                                ).increment()
+                            billingBillsTimer.record(java.time.Duration.ZERO)
                         }
 
                         when (v) {
