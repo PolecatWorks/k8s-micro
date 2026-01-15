@@ -6,6 +6,7 @@ import com.polecatworks.kotlin.k8smicro.eventSerde.EventSerde
 import com.polecatworks.kotlin.k8smicro.health.HealthSystem
 import io.confluent.kafka.serializers.AbstractKafkaSchemaSerDeConfig
 import io.ktor.client.engine.HttpClientEngine
+import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -58,6 +59,7 @@ class KafkaProcessor(
     val engine: HttpClientEngine,
     val running: AtomicBoolean,
     val applicationServer: String,
+    private val metricsRegistry: PrometheusMeterRegistry,
 ) {
     val schemaRegistryApi = KafkaSchemaRegistryApi(config.schemaRegistry, engine, health, running)
 
@@ -344,6 +346,35 @@ class KafkaProcessor(
                     { Event.BillAggregate() },
                     { k: String, v: Event, agg: Event ->
                         val currentAgg = agg as? Event.BillAggregate ?: Event.BillAggregate()
+
+                        val customerId =
+                            when (v) {
+                                is Event.Bill -> v.customerId
+                                is Event.PaymentRequest -> v.customerId
+                                is Event.PaymentFailed -> v.customerId
+                                else -> "unknown"
+                            }
+
+                        // Track every aggregation event with tags
+                        metricsRegistry
+                            .counter(
+                                "billing.aggregation.total",
+                                "customer_id",
+                                customerId,
+                                "event_type",
+                                v::class.simpleName ?: "unknown",
+                            ).increment()
+
+                        // Specifically track number of distinct bills per customer
+                        if (v is Event.Bill && currentAgg.bill == null) {
+                            metricsRegistry
+                                .counter(
+                                    "billing.customer.bills.total",
+                                    "customer_id",
+                                    customerId,
+                                ).increment()
+                        }
+
                         when (v) {
                             is Event.BillAggregate -> v
                             is Event.Bill -> {

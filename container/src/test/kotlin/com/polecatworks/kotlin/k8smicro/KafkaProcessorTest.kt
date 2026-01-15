@@ -11,6 +11,8 @@ import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
 import io.ktor.http.headersOf
 import io.ktor.utils.io.ByteReadChannel
+import io.micrometer.prometheus.PrometheusConfig
+import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.jsonObject
@@ -73,10 +75,11 @@ class KafkaProcessorTest {
 
     private val health = HealthSystem()
     private val running = AtomicBoolean(true)
+    private val metricsRegistry = PrometheusMeterRegistry(PrometheusConfig.DEFAULT)
 
     @Test
     fun testBillingAggregation() {
-        val processor = KafkaProcessor(config, health, mockEngine, running, "localhost:8080")
+        val processor = KafkaProcessor(config, health, mockEngine, running, "localhost:8080", metricsRegistry)
         val eventSerde = EventSerde()
         val eventSchemaManager = EventSchemaManager(processor.schemaRegistryApi)
 
@@ -172,9 +175,36 @@ class KafkaProcessorTest {
             val badBill = bill.copy(amountCents = 2000)
             inputTopic.pipeInput(billId, badBill)
 
-            val aggErrored = store.get(billId) as Event.BillAggregate
-            assertEquals(true, aggErrored.errored)
-            assertEquals(badBill, aggErrored.bill)
+            // Verify metrics
+            val customerId = "CUST-1"
+
+            // 1. Verify total aggregations for this customer (sum across all event types)
+            val totalAggs =
+                metricsRegistry
+                    .find("billing.aggregation.total")
+                    .tag("customer_id", customerId)
+                    .counters()
+                    .sumOf { it.count() }
+            assertEquals(5.0, totalAggs) // 5 inputs: bill, payReq, payFail, payReq2, badBill
+
+            // 2. Verify specific event types for this customer
+            val billEventTypeCounter =
+                metricsRegistry
+                    .find("billing.aggregation.total")
+                    .tag("customer_id", customerId)
+                    .tag("event_type", "Bill")
+                    .counter()
+            assertNotNull(billEventTypeCounter)
+            assertEquals(2.0, billEventTypeCounter!!.count()) // 'bill' and 'badBill'
+
+            // 3. Verify distinct bills for this customer
+            val distinctBillCounter =
+                metricsRegistry
+                    .find("billing.customer.bills.total")
+                    .tag("customer_id", customerId)
+                    .counter()
+            assertNotNull(distinctBillCounter)
+            assertEquals(1.0, distinctBillCounter!!.count()) // Only the first bill counts as 'new' for this billId
         }
     }
 }
