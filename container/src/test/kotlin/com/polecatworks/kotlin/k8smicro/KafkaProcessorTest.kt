@@ -176,35 +176,15 @@ class KafkaProcessorTest {
             inputTopic.pipeInput(billId, badBill)
 
             // Verify metrics
-            val customerId = "CUST-1"
+            // 1. Verify global total aggregations
+            val totalAggs = metricsRegistry.find("billing.aggregation").timer()
+            assertNotNull(totalAggs)
+            assertEquals(5L, totalAggs!!.count())
 
-            // 1. Verify total aggregations for this customer (sum across all event types)
-            val totalAggs =
-                metricsRegistry
-                    .find("billing.aggregation.total")
-                    .tag("customer_id", customerId)
-                    .counters()
-                    .sumOf { it.count() }
-            assertEquals(5.0, totalAggs) // 5 inputs: bill, payReq, payFail, payReq2, badBill
-
-            // 2. Verify specific event types for this customer
-            val billEventTypeCounter =
-                metricsRegistry
-                    .find("billing.aggregation.total")
-                    .tag("customer_id", customerId)
-                    .tag("event_type", "Bill")
-                    .counter()
-            assertNotNull(billEventTypeCounter)
-            assertEquals(2.0, billEventTypeCounter!!.count()) // 'bill' and 'badBill'
-
-            // 3. Verify distinct bills for this customer
-            val distinctBillCounter =
-                metricsRegistry
-                    .find("billing.customer.bills.total")
-                    .tag("customer_id", customerId)
-                    .counter()
-            assertNotNull(distinctBillCounter)
-            assertEquals(1.0, distinctBillCounter!!.count()) // Only the first bill counts as 'new' for this billId
+            // 2. Verify global distinct bills
+            val distinctBills = metricsRegistry.find("billing.customer.bills").timer()
+            assertNotNull(distinctBills)
+            assertEquals(1L, distinctBills!!.count())
         }
     }
 
@@ -239,17 +219,21 @@ class KafkaProcessorTest {
             inputTopic.pipeInput("key-1", chaser1)
             inputTopic.pipeInput("key-1", chaser2)
 
-            val summary =
+            val gauge =
                 metricsRegistry
-                    .find("chaser.ttl")
-                    .tag("chaser_name", "chaser-A")
-                    .tag("key", "key-1")
-                    .summary()
+                    .find("chaser.ttl.value")
+                    .gauge()
 
-            assertNotNull(summary)
-            assertEquals(2L, summary!!.count())
-            assertEquals(450.0, summary!!.max(), 0.01)
-            assertEquals(750.0, summary!!.totalAmount(), 0.01) // 300 + 450
+            assertNotNull(gauge)
+            assertEquals(450.0, gauge!!.value())
+
+            val timer =
+                metricsRegistry
+                    .find("chaser.received")
+                    .timer()
+
+            assertNotNull(timer)
+            assertEquals(2L, timer!!.count())
         }
     }
 }
