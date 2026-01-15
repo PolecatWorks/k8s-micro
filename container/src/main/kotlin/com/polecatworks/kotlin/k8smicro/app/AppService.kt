@@ -82,7 +82,8 @@ open class AppService(
             }
         }
 
-    private val kafkaProcessor = KafkaProcessor(config.kafkaProcessor, health, CIO_CLIENT.create(), running, applicationServer)
+    private val kafkaProcessor =
+        KafkaProcessor(config.kafkaProcessor, health, CIO_CLIENT.create(), running, applicationServer, metricsRegistry)
     private val sqlServer = SqlServer(config.sqlServer, health, running)
 
     private suspend fun startCoroutines() =
