@@ -4,6 +4,8 @@ BRANCHNAME?=
 SHA?=
 CHANGELIST?=-SNAPSHOT
 
+CERTS_DIR := $(HOME)/.certs/certs-crt
+
 export DOCKER_BUILDKIT=1
 
 KAFKA_BOOTSTRAP := localhost:9092
@@ -78,7 +80,7 @@ docker-java-build:
 	docker image ls ${IMAGE_NAME}-java-build
 
 docker-jre-build:
-	docker build --target jre-build -t ${IMAGE_NAME}-jre-build container/
+	docker build --secret id=my_certs,src=${CERTS_DIR} --target jre-build -t ${IMAGE_NAME}-jre-build container/
 	docker image ls ${IMAGE_NAME}-jre-build
 
 docker-build:
