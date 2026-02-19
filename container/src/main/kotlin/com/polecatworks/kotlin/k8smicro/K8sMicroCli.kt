@@ -17,9 +17,22 @@ import java.nio.file.Paths
 
 private val logger = KotlinLogging.logger {}
 
+/**
+ * Command-line interface for the K8sMicro application.
+ *
+ * This class handles parsing command-line arguments and initializing the application configuration.
+ * It uses Clikt for argument parsing and Hoplite for configuration loading.
+ */
 class K8sMicroCli : CliktCommand() {
     private val config by option(help = "Config file").file(canBeDir = false, mustBeReadable = true).required()
     private val secretDir by option(help = "Secrets dir").path(canBeFile = false, mustBeReadable = true).required()
+
+    /**
+     * Executes the CLI command.
+     *
+     * It loads the configuration from the specified file and secrets directory,
+     * initializes the [K8sMicro] service, and runs it.
+     */
     override fun run() {
         val version = System.getenv("VERSION") ?: "0.0.0"
 
@@ -43,4 +56,9 @@ class K8sMicroCli : CliktCommand() {
     }
 }
 
+/**
+ * Main entry point for the application.
+ *
+ * @param args Command-line arguments.
+ */
 fun main(args: Array<String>) = K8sMicroCli().main(args)

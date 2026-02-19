@@ -20,6 +20,17 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
+/**
+ * Service responsible for exposing health checks and metrics.
+ *
+ * It runs a separate Ktor server on a dedicated port (default 8079).
+ *
+ * @property version The version of the application.
+ * @property appService Reference to the main application service.
+ * @property metricsRegistry Registry for Prometheus metrics.
+ * @property health The health system to query status from.
+ * @property port The port to listen on.
+ */
 class HealthService(
     val version: String,
     private val appService: AppService,
@@ -78,14 +89,14 @@ class HealthService(
     suspend fun startSuspended() = startCoroutines()
 
     /**
-     * Wait for the health service to be fully started and listening
+     * Wait for the health service to be fully started and listening.
      */
     suspend fun waitUntilStarted() = serverStarted.await()
 
     /**
-     * Create blocking coroutine context and wait for completion
+     * Create blocking coroutine context and wait for completion.
      *
-     * Dispatch web server and health service into this context
+     * Dispatch web server and health service into this context.
      */
     fun start() =
         runBlocking {
@@ -94,6 +105,9 @@ class HealthService(
             logger.info { "Health coroutines: Complete" }
         }
 
+    /**
+     * Signals the service to stop running.
+     */
     fun stop() {
         running.set(false)
         logger.info("Set to stop")

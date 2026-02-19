@@ -40,6 +40,9 @@ import kotlin.time.Duration.Companion.seconds
 
 private val logger = KotlinLogging.logger {}
 
+/**
+ * Configuration for the KafkaProcessor.
+ */
 data class KafkaProcessorConfig constructor(
     val hostUrl: String,
     val schemaRegistry: KafkaSchemaRegistryConfig,
@@ -54,6 +57,19 @@ data class KafkaProcessorConfig constructor(
     val querySleep: Duration = 15.seconds,
 )
 
+/**
+ * Handles Kafka Stream processing.
+ *
+ * This class sets up the Kafka Streams topology, manages the lifecycle of the streams,
+ * and provides access to local state stores for querying aggregates.
+ *
+ * @property config Configuration for Kafka processing.
+ * @property health Health system for reporting status.
+ * @property engine HTTP client engine.
+ * @property running Atomic boolean to control the running state.
+ * @property applicationServer The host:port of this application instance.
+ * @property metricsRegistry Registry for Prometheus metrics.
+ */
 class KafkaProcessor(
     val config: KafkaProcessorConfig,
     val health: HealthSystem,
@@ -71,6 +87,12 @@ class KafkaProcessor(
 
     private var streamsInstance: KafkaStreams? = null
 
+    /**
+     * Starts the Kafka processing loop.
+     *
+     * This method initializes the schema registry API, builds the Kafka Streams topology,
+     * starts the streams, and waits until the `running` flag is set to false.
+     */
     suspend fun start() =
         coroutineScope {
             logger.info("Starting kafka processing")
@@ -133,6 +155,12 @@ class KafkaProcessor(
     /* Look to use a proper kafka serdes for this process so we can apply that directly to the kafka values.
     Then we can consider to use the kafka streams API for processing the data.
      */
+    /**
+     * Placeholder function to write schema ID to bytes.
+     *
+     * @param obj The object (unused).
+     * @return Byte array with schema ID.
+     */
     fun writeMe(obj: Any?): ByteArray {
         val out = ByteArrayOutputStream()
         writeSchemaId(out, chaserId!!)
@@ -141,6 +169,9 @@ class KafkaProcessor(
         return bytes
     }
 
+    /**
+     * Helper to write schema ID to output stream.
+     */
     fun writeSchemaId(
         out: ByteArrayOutputStream,
         id: Int,
@@ -153,6 +184,12 @@ class KafkaProcessor(
         println("Initialising Kafka Processor: $config")
     }
 
+    /**
+     * Retrieves the chaser aggregate from the local store.
+     *
+     * @param key The key to look up.
+     * @return The [Event] if found, null otherwise.
+     */
     fun getChaserAggregate(key: String): Event? {
         val localStreams = streamsInstance ?: return null
         return try {
@@ -170,6 +207,11 @@ class KafkaProcessor(
         }
     }
 
+    /**
+     * Retrieves all keys from the chaser aggregate store.
+     *
+     * @return A list of keys.
+     */
     fun getAllChaserAggregateKeys(): List<String> {
         val localStreams =
             streamsInstance ?: run {
@@ -202,6 +244,12 @@ class KafkaProcessor(
         }
     }
 
+    /**
+     * Retrieves metadata for a key in the chaser store, useful for locating which instance holds the key.
+     *
+     * @param key The key to query metadata for.
+     * @return KeyQueryMetadata or null if failed.
+     */
     fun getChaserStoreMetaData(key: String): org.apache.kafka.streams.KeyQueryMetadata? {
         val localStreams = streamsInstance ?: return null
         return try {
@@ -212,6 +260,12 @@ class KafkaProcessor(
         }
     }
 
+    /**
+     * Retrieves the billing aggregate from the local store.
+     *
+     * @param key The key to look up.
+     * @return The [Event] if found, null otherwise.
+     */
     fun getBillingAggregate(key: String): Event? {
         val localStreams = streamsInstance ?: return null
         return try {
@@ -229,6 +283,11 @@ class KafkaProcessor(
         }
     }
 
+    /**
+     * Retrieves all keys from the billing aggregate store.
+     *
+     * @return A list of keys.
+     */
     fun getAllBillingAggregateKeys(): List<String> {
         val localStreams =
             streamsInstance ?: run {
@@ -259,6 +318,12 @@ class KafkaProcessor(
         }
     }
 
+    /**
+     * Retrieves metadata for a key in the billing store.
+     *
+     * @param key The key to query metadata for.
+     * @return KeyQueryMetadata or null if failed.
+     */
     fun getBillingStoreMetaData(key: String): org.apache.kafka.streams.KeyQueryMetadata? {
         val localStreams = streamsInstance ?: return null
         return try {
@@ -269,6 +334,17 @@ class KafkaProcessor(
         }
     }
 
+    /**
+     * Builds the Kafka Streams topology.
+     *
+     * It defines two main processing pipelines:
+     * 1. Chaser aggregation: Aggregates [Event.Chaser] events.
+     * 2. Billing aggregation: Aggregates [Event.Bill], [Event.PaymentRequest], and [Event.PaymentFailed] events.
+     *
+     * @param streamsBuilder The StreamsBuilder to construct the topology.
+     * @param eventSerde The SerDe for Event objects.
+     * @return The constructed Topology.
+     */
     fun buildTopology(
         streamsBuilder: StreamsBuilder,
         eventSerde: EventSerde,
