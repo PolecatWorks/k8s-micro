@@ -12,6 +12,17 @@ import io.micrometer.prometheus.PrometheusMeterRegistry
 import kotlin.time.ExperimentalTime
 import kotlin.time.TimeSource
 
+/**
+ * Configures routing for the health service.
+ *
+ * Defines endpoints for version, startup, stop, metrics, readiness, and liveness checks.
+ *
+ * @param version The application version.
+ * @param appService Reference to the main application service.
+ * @param appMicrometerRegistry Registry for Prometheus metrics.
+ * @param health The health system to query status from.
+ * @param healthService Reference to the health service itself.
+ */
 @OptIn(ExperimentalTime::class)
 fun Application.configureHealthRouting(
     version: String,

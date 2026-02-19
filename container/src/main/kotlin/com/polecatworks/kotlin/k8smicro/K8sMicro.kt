@@ -13,7 +13,13 @@ private val logger = KotlinLogging.logger {}
 
 /**
  * Functional definition of the microservice.
- * All the runtime code is assembled here
+ * All the runtime code is assembled here.
+ *
+ * This class orchestrates the lifecycle of the application, including the health service,
+ * app service, and shutdown hooks.
+ *
+ * @property version The version of the microservice.
+ * @property config The configuration for the microservice.
  */
 class K8sMicro(
     val version: String,
@@ -38,7 +44,10 @@ class K8sMicro(
     }
 
     /**
-     * start the microservice and keep the thread until it is complete and all shutdown
+     * Start the microservice and keep the thread running until it is complete and all components have shutdown.
+     *
+     * This method starts the health service in a separate thread and then starts the main app service.
+     * It blocks until the app service stops (e.g., via shutdown hook).
      */
     fun run() {
         logger.info("K8sMicro starting")

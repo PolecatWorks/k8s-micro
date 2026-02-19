@@ -32,10 +32,23 @@ import io.ktor.server.plugins.contentnegotiation.ContentNegotiation as ServerCon
 
 val logger = KotlinLogging.logger {}
 
+/**
+ * Data class representing the state of the AppService.
+ *
+ * @property count Atomic integer used for state tracking.
+ */
 data class AppServiceState(
     var count: AtomicInteger,
 )
 
+/**
+ * Service class responsible for managing the application lifecycle, including the web server,
+ * Kafka processor, and health checks.
+ *
+ * @param health The health system for reporting readiness and liveness.
+ * @param metricsRegistry Registry for Prometheus metrics.
+ * @param config Application configuration.
+ */
 open class AppService(
     private val health: HealthSystem,
     private val metricsRegistry: PrometheusMeterRegistry,
@@ -127,9 +140,9 @@ open class AppService(
         }
 
     /**
-     * Create blocking coroutine context and wait for completion
+     * Create blocking coroutine context and wait for completion.
      *
-     * Dispatch web server and app service into this context
+     * Dispatch web server and app service into this context.
      */
     fun start() =
         runBlocking {
@@ -140,11 +153,22 @@ open class AppService(
             logger.info { "App coroutines: Complete" }
         }
 
+    /**
+     * Signals the service to stop running.
+     */
     fun stop() {
         running.set(false)
         logger.info("App Service: Set to stop")
     }
 
+    /**
+     * Retrieves the chaser aggregate for a given key.
+     *
+     * If the key is located on another instance, the request is forwarded.
+     *
+     * @param key The key to retrieve the aggregate for.
+     * @return The aggregate event, or null if not found.
+     */
     suspend fun getAggregate(key: String): Event? {
         val metadata = kafkaProcessor.getChaserStoreMetaData(key)
         if (metadata != null) {
@@ -165,8 +189,21 @@ open class AppService(
         return kafkaProcessor.getChaserAggregate(key)
     }
 
+    /**
+     * Retrieves all chaser aggregate keys from the local store.
+     *
+     * @return A list of all keys.
+     */
     fun getAllChaserAggregateKeys(): List<String> = kafkaProcessor.getAllChaserAggregateKeys()
 
+    /**
+     * Retrieves the billing aggregate for a given key.
+     *
+     * If the key is located on another instance, the request is forwarded.
+     *
+     * @param key The key to retrieve the aggregate for.
+     * @return The aggregate event, or null if not found.
+     */
     suspend fun getBillingAggregate(key: String): Event? {
         val metadata = kafkaProcessor.getBillingStoreMetaData(key)
         if (metadata != null) {
@@ -186,5 +223,10 @@ open class AppService(
         return kafkaProcessor.getBillingAggregate(key)
     }
 
+    /**
+     * Retrieves all billing aggregate keys from the local store.
+     *
+     * @return A list of all keys.
+     */
     fun getAllBillingAggregateKeys(): List<String> = kafkaProcessor.getAllBillingAggregateKeys()
 }

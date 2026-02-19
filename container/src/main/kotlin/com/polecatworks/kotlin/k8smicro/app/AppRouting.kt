@@ -27,6 +27,13 @@ import mu.KotlinLogging
 
 private val log = KotlinLogging.logger {}
 
+/**
+ * Configures the application routing for the Ktor server.
+ *
+ * This function defines the HTTP endpoints available in the application.
+ *
+ * @param appService The [AppService] instance to handle business logic.
+ */
 fun Application.configureAppRouting(appService: AppService) {
     routing {
         route(appService.myWebserver.prefix) {
