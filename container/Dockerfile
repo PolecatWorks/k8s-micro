@@ -14,6 +14,11 @@ FROM maven:${MAVEN_VERSION} AS java-build
 # Install project dependencies and keep sources
 # make source folder
 COPY pom.xml ./
+# use the certs from the host user
+RUN --mount=type=secret,id=my_certs,target=/usr/local/share/ca-certificates/ \
+    update-ca-certificates && \
+    keytool -list -keystore $JAVA_HOME/lib/security/cacerts -storepass changeit
+
 RUN --mount=type=cache,target=/root/.m2 mvn -T 1C install && rm -rf target
 # copy other source files (keep in image)
 COPY src ./src/
