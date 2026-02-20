@@ -19,6 +19,12 @@ repositories {
     }
 }
 
+// hoplite-yaml 2.7.0 uses the SnakeYAML 1.x API (SafeConstructor no-arg constructor).
+// Kafka pulls in SnakeYAML 2.0 which removed that constructor, so we force 1.33 here.
+configurations.all {
+    resolutionStrategy.force("org.yaml:snakeyaml:1.33")
+}
+
 val ktorVersion = "3.2.3"
 val kafkaVersion = "3.4.0"
 val serializationVersion = "1.9.0"
