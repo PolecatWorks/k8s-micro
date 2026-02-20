@@ -1,13 +1,16 @@
 plugins {
     kotlin("jvm") version "2.3.0"
     kotlin("plugin.serialization") version "2.3.0"
-    id("org.springframework.boot") version "3.3.0" apply false
-    id("io.spring.dependency-management") version "1.1.4" apply false
     id("com.github.johnrengelman.shadow") version "8.1.1"
+    application
 }
 
 group = "com.polecatworks.kotlin.k8smicro"
 version = "2.0.0-SNAPSHOT"
+
+application {
+    mainClass.set("com.polecatworks.kotlin.k8smicro.K8sMicroCliKt")
+}
 
 repositories {
     mavenCentral()
