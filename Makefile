@@ -31,6 +31,12 @@ start-kafka:
 start-schema:
 	$(SCHEMA_REGISTRY_START) $(CONFLUENT_HOME)/etc/schema-registry/schema-registry.properties
 
+compose-kafka-zk:
+	docker compose -f docker-compose/kafka-zk.yaml up
+
+compose-kafka-kraft:
+	docker compose -f docker-compose/kafka-kraft.yaml up
+
 
 topics-list:
 	$(KAFKA_TOPICS) --bootstrap-server $(KAFKA_BOOTSTRAP) --list
