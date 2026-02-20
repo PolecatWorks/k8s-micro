@@ -68,11 +68,12 @@ test:
 	cd container && JAVA_HOME=$$(/usr/libexec/java_home -v 21) ./gradlew test
 
 CONFIG ?= src/main/resources/k8smicro-config.yaml
+SECRET_DIR ?= src/main/resources/secrets
 
 backend-java-dev:
 	cd container && \
 	export JAVA_HOME=$$(/usr/libexec/java_home -v 21) && \
-	./gradlew run --args="--config $(CONFIG)"
+	./gradlew run --args="--config $(CONFIG) --secrets $(SECRET_DIR)"
 
 check-alive:
 	@curl http://localhost:8079/hams/alive
