@@ -67,8 +67,8 @@ build:
 test:
 	cd container && JAVA_HOME=$$(/usr/libexec/java_home -v 21) ./gradlew test
 
-CONFIG ?= src/main/resources/k8smicro-config.yaml
-SECRET_DIR ?= src/main/resources/secrets
+CONFIG ?= test-data/config.yaml
+SECRET_DIR ?= test-data/secrets
 
 backend-java-dev:
 	cd container && \
@@ -108,7 +108,10 @@ docker-bash: docker-build
 	docker run -it ${IMAGE_NAME}:${VERSION} /bin/bash
 
 docker-run: docker-build
-	docker run -it ${IMAGE_NAME}:${VERSION}
+	docker run -it \
+		-v $(PWD)/container/test-data:/test-data \
+		${IMAGE_NAME}:${VERSION} \
+		--config /test-data/config.yaml --secrets /test-data/secrets
 
 clean-branches:
 	git branch --merged | egrep -v "(^\*|master|main|dev)" | xargs git branch -d
