@@ -59,36 +59,29 @@ topic-input-read:
 
 
 
-export JAVA_HOME = $(shell /usr/libexec/java_home -v 25)
+export JAVA_HOME = $(shell /usr/libexec/java_home -v 21)
 
-mvnversion:
-	@echo "Setting version to $(VERSION)$(BRANCHNAME)$(SHA)$(CHANGELIST)"
-	@mvn -f container/pom.xml versions:set -DnewVersion=$(VERSION)$(BRANCHNAME)$(SHA)$(CHANGELIST)
+build:
+	cd container && JAVA_HOME=$$(/usr/libexec/java_home -v 21) ./gradlew shadowJar
 
-verify: mvnversion
-	@mvn -f container/pom.xml verify
+test:
+	cd container && JAVA_HOME=$$(/usr/libexec/java_home -v 21) ./gradlew test
 
-package: mvnversion
-	@mvn -f container/pom.xml package ${MAVEN_ARGS}
-
-run: MAVEN_ARGS=-DskipTests -Dversion=$(VERSION) -Dbranchname=$(BRANCHNAME) -Dsha=$(SHA) -Dchangelist=$(CHANGELIST)
-run: package
-	@java -jar container/target/k8s-micro-$(VERSION)$(CHANGELIST)-jar-with-dependencies.jar
+backend-java-dev:
+	cd container && \
+	export JAVA_HOME=$$(/usr/libexec/java_home -v 21) && \
+	./gradlew run
 
 check-alive:
 	@curl http://localhost:8079/hams/alive
 
-
-docker-java-build:
-	docker build --target java-build -t ${IMAGE_NAME}-java-build container/
-	docker image ls ${IMAGE_NAME}-java-build
 
 docker-jre-build:
 	docker build --target jre-build -t ${IMAGE_NAME}-jre-build container/
 	docker image ls ${IMAGE_NAME}-jre-build
 
 docker-build:
-	docker build --target publish -t ${IMAGE_NAME}:${VERSION} container/
+	docker build -t ${IMAGE_NAME}:${VERSION} container/
 	docker image ls ${IMAGE_NAME}
 
 docker-ma-build:
@@ -104,9 +97,6 @@ docker-ma-build:
 	# docker buildx build --platform linux/amd64,linux/arm64 --target publish -t ${IMAGE_NAME}:${VERSION} container/
 	# docker buildx build --platform linux/arm64/v8,linux/amd64 --target publish -t ${IMAGE_NAME}:${VERSION} container/
 	# docker image ls ${IMAGE_NAME}
-
-docker-java-build-bash: docker-java-build
-	docker run -it ${IMAGE_NAME}-java-build /bin/bash
 
 docker-jre-build-bash: docker-jre-build
 	docker run -it ${IMAGE_NAME}-jre-build /bin/bash
