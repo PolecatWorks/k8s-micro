@@ -57,46 +57,46 @@ export JAVA_HOME = $(shell /usr/libexec/java_home -v 25)
 
 mvnversion:
 	@echo "Setting version to $(VERSION)$(BRANCHNAME)$(SHA)$(CHANGELIST)"
-	@mvn versions:set -DnewVersion=$(VERSION)$(BRANCHNAME)$(SHA)$(CHANGELIST)
+	@mvn -f container/pom.xml versions:set -DnewVersion=$(VERSION)$(BRANCHNAME)$(SHA)$(CHANGELIST)
 
 verify: mvnversion
-	@mvn verify
+	@mvn -f container/pom.xml verify
 
 package: mvnversion
-	@mvn package ${MAVEN_ARGS}
+	@mvn -f container/pom.xml package ${MAVEN_ARGS}
 
 run: MAVEN_ARGS=-DskipTests -Dversion=$(VERSION) -Dbranchname=$(BRANCHNAME) -Dsha=$(SHA) -Dchangelist=$(CHANGELIST)
 run: package
-	@java -jar  target/k8s-micro-$(VERSION)$(CHANGELIST)-jar-with-dependencies.jar
+	@java -jar container/target/k8s-micro-$(VERSION)$(CHANGELIST)-jar-with-dependencies.jar
 
 check-alive:
 	@curl http://localhost:8079/hams/alive
 
 
 docker-java-build:
-	docker build --target java-build -t ${IMAGE_NAME}-java-build .
+	docker build --target java-build -t ${IMAGE_NAME}-java-build container/
 	docker image ls ${IMAGE_NAME}-java-build
 
 docker-jre-build:
-	docker build --target jre-build -t ${IMAGE_NAME}-jre-build .
+	docker build --target jre-build -t ${IMAGE_NAME}-jre-build container/
 	docker image ls ${IMAGE_NAME}-jre-build
 
 docker-build:
-	docker build --target publish -t ${IMAGE_NAME}:${VERSION} .
+	docker build --target publish -t ${IMAGE_NAME}:${VERSION} container/
 	docker image ls ${IMAGE_NAME}
 
 docker-ma-build:
 	# sudo apt-get install qemu binfmt-support qemu-user-static
 	# docker run --rm --privileged multiarch/qemu-user-static --reset -p yes
 	# docker buildx create --name monkey --use
-	docker buildx build --platform linux/arm64,linux/amd64 --target publish -t ${IMAGE_NAME}:${VERSION} .
-	docker buildx build --platform linux/arm64 --target publish --load -t ${IMAGE_NAME}:${VERSION}-arm64 .
-	docker buildx build --platform linux/amd64 --target publish --load -t ${IMAGE_NAME}:${VERSION}-amd64 .
+	docker buildx build --platform linux/arm64,linux/amd64 --target publish -t ${IMAGE_NAME}:${VERSION} container/
+	docker buildx build --platform linux/arm64 --target publish --load -t ${IMAGE_NAME}:${VERSION}-arm64 container/
+	docker buildx build --platform linux/amd64 --target publish --load -t ${IMAGE_NAME}:${VERSION}-amd64 container/
 	# this also seems and issue https://github.com/docker/cli/issues/3350
 	docker manifest create ${IMAGE_NAME}:${VERSION} --amend ${IMAGE_NAME}:${VERSION}-arm64 --amend ${IMAGE_NAME}:${VERSION}-amd64
 	# Load FAILS because of this: https://github.com/docker/buildx/issues/59
-	# docker buildx build --platform linux/amd64,linux/arm64 --target publish -t ${IMAGE_NAME}:${VERSION} .
-	# docker buildx build --platform linux/arm64/v8,linux/amd64 --target publish -t ${IMAGE_NAME}:${VERSION} .
+	# docker buildx build --platform linux/amd64,linux/arm64 --target publish -t ${IMAGE_NAME}:${VERSION} container/
+	# docker buildx build --platform linux/arm64/v8,linux/amd64 --target publish -t ${IMAGE_NAME}:${VERSION} container/
 	# docker image ls ${IMAGE_NAME}
 
 docker-java-build-bash: docker-java-build
@@ -116,7 +116,7 @@ clean-branches:
 
 
 helm-upgrade:
-	helm upgrade -i k8s-micro helm/k8s-micro
+	helm upgrade -i k8s-micro charts/k8s-micro
 
 alpine-bash:
 	kubectl run -i --tty alpine-$(subst .,-,${USER}) --image=alpine:latest --rm --restart=Never -- sh -c "until apk add curl bind-tools; do echo waiting for sidecar; sleep 3; done;sh"
