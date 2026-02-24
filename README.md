@@ -28,7 +28,7 @@ The objective is to provide:
 * [x] Coroutines
 * [ ] KTOR development mode (https://ktor.io/docs/auto-reload.html#watch-paths)
 * [x] License
-* [ ] Useful README
+* [x] Useful README
   * [x] README describing dev process and reloads, etc
 * [ ] Review items
   * [x] Use of threads + coroutines
@@ -195,6 +195,99 @@ The service exposes endpoints on two ports: the main application port (configure
 Use the helper commands to create necessary Kafka topics:
 ```bash
 make topics-create
+```
+
+# Manual User Acceptance Testing (UAT)
+
+This section details the steps to manually verify the system's functionality. The system uses Avro-serialized events, so we use `kafka-avro-console-producer` to inject data.
+
+## Prerequisites
+
+*   **Confluent Platform** (or compatible Kafka + Schema Registry) must be running.
+*   **Application** must be running (see "Building and Running Locally").
+*   `kafka-avro-console-producer` tool (usually part of Confluent Platform).
+
+## UAT Scenario 1: Billing Lifecycle
+
+This scenario validates the processing of bills and payments.
+
+### 1. Create a Bill
+Inject a `Bill` event into the input topic (`input` by default).
+
+**Command:**
+```bash
+kafka-avro-console-producer \
+  --broker-list localhost:9092 \
+  --topic input \
+  --property schema.registry.url=http://localhost:8081 \
+  --property value.schema='{"type":"record","name":"Bill","namespace":"com.polecatworks.billing","fields":[{"name":"billId","type":"string"},{"name":"customerId","type":"string"},{"name":"orderId","type":"string"},{"name":"amountCents","type":"long"},{"name":"currency","type":"string"},{"name":"issuedAt","type":"long"},{"name":"dueDate","type":"long"}]}' \
+  --property parse.key=true \
+  --property key.separator=":"
+```
+*Note: The actual schema registered by the app is a Union of all Event types. Ideally, check the schema registry for the exact ID or full schema definition. If the app has already started, it registers the schemas.*
+
+**Payload (Type at the prompt):**
+```json
+BILL-001:{"com.polecatworks.billing.Bill":{"billId":"BILL-001","customerId":"CUST-001","orderId":"ORD-100","amountCents":1500,"currency":"USD","issuedAt":1678886400000,"dueDate":1679491200000}}
+```
+
+### 2. Verify Bill Creation
+Check the API to see if the bill aggregate exists.
+
+```bash
+curl http://localhost:8080/billing/BILL-001
+```
+**Expected Response:**
+```json
+{
+  "bill": { ... },
+  "paymentRequests": [],
+  "lastPaymentFailed": null,
+  "errored": false
+}
+```
+
+### 3. Make a Payment Request
+Inject a `PaymentRequest` event.
+
+**Payload:**
+```json
+BILL-001:{"com.polecatworks.billing.PaymentRequest":{"paymentId":"PAY-001","billId":"BILL-001","customerId":"CUST-001","amountCents":1500,"currency":"USD","requestedAt":1678890000000}}
+```
+
+### 4. Verify Payment Update
+Check the API again.
+
+```bash
+curl http://localhost:8080/billing/BILL-001
+```
+**Expected Response:** The `paymentRequests` list should now contain the payment details.
+
+## UAT Scenario 2: Chaser Aggregation
+
+This scenario validates the aggregation of Chaser events.
+
+### 1. Send Chaser Events
+Inject multiple `Chaser` events for the same key.
+
+**Payloads:**
+```json
+CHASE-001:{"com.polecatworks.chaser.Chaser":{"name":"ChaserA","id":"1","sent":1000,"ttl":300,"previous":null}}
+CHASE-001:{"com.polecatworks.chaser.Chaser":{"name":"ChaserB","id":"2","sent":2000,"ttl":500,"previous":1000}}
+```
+
+### 2. Verify Aggregation
+```bash
+curl http://localhost:8080/chaser/CHASE-001
+```
+**Expected Response:**
+```json
+{
+  "names": ["ChaserA", "ChaserB"],
+  "count": 2,
+  "latest": 2000,
+  "longest": 500
+}
 ```
 
 # Anomalies / Technical Debt
